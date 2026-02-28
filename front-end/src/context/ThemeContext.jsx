@@ -6,6 +6,7 @@ const THEMES = [
   { id: 'blueprint', label: 'BLUEPRINT', fg: '#00e5ff', bg: '#00050f' },
   { id: 'ibm',       label: 'IBM',       fg: '#f0f0f0', bg: '#0000aa' },
   { id: 'phosphor',  label: 'PHOSPHOR',  fg: '#e8ffe8', bg: '#001200' },
+  { id: 'noir',      label: 'NOIR',      fg: '#111111', bg: '#ffffff' },
 ]
 
 const ThemeContext = createContext(null)

@@ -53,6 +53,18 @@
   --border-hi: #f0f0f066;
 }
 
+/* --- NOIR --- */
+[data-theme="noir"] {
+  --bg:        #ffffff;
+  --bg-2:      #f5f5f5;
+  --bg-3:      #ebebeb;
+  --fg:        #111111;
+  --fg-dim:    #444444;
+  --fg-muted:  #999999;
+  --border:    #11111133;
+  --border-hi: #11111166;
+}
+
 /* --- PHOSPHOR --- */
 [data-theme="phosphor"] {
   --bg:        #001200;
