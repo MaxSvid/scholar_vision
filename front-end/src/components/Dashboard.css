@@ -18,6 +18,9 @@
 }
 
 .dash-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 1rem;
   letter-spacing: 0.1em;
   color: var(--fg);

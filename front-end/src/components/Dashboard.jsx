@@ -49,7 +49,10 @@ export default function Dashboard({ user, onLogout }) {
     <div className="dash-root">
       {/* TOP BAR */}
       <header className="dash-header">
-        <div className="dash-logo">ScholarVision</div>
+        <div className="dash-logo">
+          <img src="/favicon.png" alt="ScholarVision logo" className="nav-logo-img" />
+          SV
+        </div>
         <div className="dash-header-right">
           <div className="dash-user">{displayName}</div>
           <button className="retro-btn" onClick={onLogout}>Logout</button>

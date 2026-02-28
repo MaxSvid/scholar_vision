@@ -13,7 +13,10 @@ export default function HeroPage({ onLogin }) {
     <div className="hero-root">
       {/* NAV */}
       <nav className="hero-nav">
-        <div className="hero-nav-logo">SV</div>
+        <div className="hero-nav-logo">
+          <img src="/favicon.png" alt="ScholarVision logo" className="nav-logo-img" />
+          SV
+        </div>
         <div className="hero-nav-right">
           <button className="retro-btn" onClick={() => openAuth('login')}>Login</button>
           <button className="retro-btn solid" onClick={() => openAuth('register')}>Register</button>
