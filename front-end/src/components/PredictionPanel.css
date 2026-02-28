@@ -177,6 +177,92 @@
   text-align: center;
 }
 
+/* ── Baseline controls ─────────────────────────────────────────── */
+.pred-inputs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pred-reset-btn {
+  font-size: 0.62rem;
+  padding: 0.25rem 0.6rem;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.pred-val-group {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.pred-baseline-val {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
+/* ── Data Sources panel ────────────────────────────────────────── */
+.pred-sources {
+  margin-top: 0.8rem;
+}
+
+.pred-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.1rem;
+}
+
+.pred-source-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.72rem;
+  flex-wrap: wrap;
+}
+
+.pred-source-on {
+  color: #44cc66;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  width: 14px;
+}
+
+.pred-source-off {
+  color: var(--fg-muted);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  width: 14px;
+}
+
+.pred-source-name {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.pred-source-inactive {
+  color: var(--fg-muted);
+}
+
+.pred-source-detail {
+  font-size: 0.65rem;
+  flex: 1;
+}
+
+.pred-source-badge {
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  border: 1px solid var(--border);
+  padding: 0.1rem 0.38rem;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* Tips */
 .pred-tips {
   display: flex;
@@ -197,4 +283,7 @@
   .pred-result-col { min-width: 0; flex-direction: row; flex-wrap: wrap; gap: 0.8rem; }
   .pred-score-card { flex: 1; min-width: 160px; }
   .pred-tips { flex: 1; min-width: 160px; }
+  .pred-source-row { gap: 0.4rem; }
+  .pred-source-detail { display: none; }
+  .pred-inputs-header { flex-direction: column; align-items: flex-start; }
 }

@@ -11,6 +11,7 @@ from routers.files import router as files_router
 from routers.health import router as health_router
 from routers.peers import router as peers_router
 from routers.predictions import router as predictions_router
+from routers.profile import router as profile_router
 from ml_engine import engine as ml_engine
 
 
@@ -38,6 +39,7 @@ app.include_router(files_router)
 app.include_router(health_router)
 app.include_router(peers_router)
 app.include_router(predictions_router)
+app.include_router(profile_router)
 
 
 class StudentQuery(BaseModel):

@@ -35,26 +35,61 @@ const GRADE_COLOR = {
   'D':  '#cc7733', 'F': '#cc3333',
 }
 
+// Fallback defaults used when the baseline has a null for a given field
+const DEFAULTS = {
+  studyHours: 5, attentionSpan: 40, focusRatio: 70, sleepHours: 7, breakFreq: 2,
+}
+
+function getSessionId() {
+  return sessionStorage.getItem('sv_session_id') || ''
+}
+
 export default function PredictionPanel() {
-  const [inputs, setInputs] = useState({
-    studyHours:    5,
-    attentionSpan: 40,
-    focusRatio:    70,
-    sleepHours:    7,
-    breakFreq:     2,
-  })
+  // ── Simulated (slider) state ──────────────────────────────────────────────
+  const [currentSimulatedData, setCurrentSimulatedData] = useState({ ...DEFAULTS })
+
+  // ── Baseline state (fetched from DB on mount) ─────────────────────────────
+  const [realBaselineData,  setRealBaselineData]  = useState(null)   // null until loaded
+  const [dataSources,       setDataSources]        = useState(null)
+  const [baselineLoading,   setBaselineLoading]    = useState(true)
+
+  // ── Prediction state ──────────────────────────────────────────────────────
   const [mode,    setMode]    = useState('strict')
   const [result,  setResult]  = useState(null)
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState(null)
   const debounceRef = useRef(null)
 
-  // Auto-fetch with 400ms debounce whenever inputs or mode change
+  // ── Fetch real baseline on mount ──────────────────────────────────────────
+  useEffect(() => {
+    const sessionId = getSessionId()
+    fetch(`/api/profile/baseline?session_id=${sessionId}`)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then(data => {
+        setRealBaselineData(data.baseline)
+        setDataSources(data.sources)
+        // Seed sliders from real data; keep DEFAULTS where DB has no value yet
+        setCurrentSimulatedData(prev => ({
+          studyHours:    data.baseline.studyHours    ?? prev.studyHours,
+          attentionSpan: data.baseline.attentionSpan ?? prev.attentionSpan,
+          focusRatio:    data.baseline.focusRatio    ?? prev.focusRatio,
+          sleepHours:    data.baseline.sleepHours    ?? prev.sleepHours,
+          breakFreq:     data.baseline.breakFreq     ?? prev.breakFreq,
+        }))
+      })
+      .catch(() => {})   // baseline is optional — silently fall back to defaults
+      .finally(() => setBaselineLoading(false))
+  }, [])
+
+  // ── Auto-predict with 400ms debounce whenever sliders or mode change ──────
   useEffect(() => {
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(fetchPrediction, 400)
     return () => clearTimeout(debounceRef.current)
-  }, [inputs, mode]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentSimulatedData, mode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchPrediction() {
     setLoading(true)
@@ -63,7 +98,7 @@ export default function PredictionPanel() {
       const res = await fetch('/api/predictions/analyze', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ ...inputs, analysis_mode: mode }),
+        body:    JSON.stringify({ ...currentSimulatedData, analysis_mode: mode }),
       })
       if (res.status === 503) throw new Error('ML models are warming up — please wait a moment.')
       if (!res.ok) {
@@ -78,10 +113,28 @@ export default function PredictionPanel() {
     }
   }
 
-  const up = (key, val) => setInputs(p => ({ ...p, [key]: parseFloat(val) }))
+  // ── Slider handler ────────────────────────────────────────────────────────
+  const up = (key, val) =>
+    setCurrentSimulatedData(p => ({ ...p, [key]: parseFloat(val) }))
+
+  // ── Reset handler — overwrites simulated data with real baseline ──────────
+  const resetToBaseline = () => {
+    if (!realBaselineData) return
+    setCurrentSimulatedData({
+      studyHours:    realBaselineData.studyHours    ?? DEFAULTS.studyHours,
+      attentionSpan: realBaselineData.attentionSpan ?? DEFAULTS.attentionSpan,
+      focusRatio:    realBaselineData.focusRatio    ?? DEFAULTS.focusRatio,
+      sleepHours:    realBaselineData.sleepHours    ?? DEFAULTS.sleepHours,
+      breakFreq:     realBaselineData.breakFreq     ?? DEFAULTS.breakFreq,
+    })
+  }
 
   const gradeColor = result ? (GRADE_COLOR[result.predicted_grade] ?? '#ccaa33') : 'var(--fg)'
   const ringDash   = result ? `${result.predicted_score * 3.14} 314` : '0 314'
+
+  // Which slider fields have a real measured value
+  const hasAnyBaseline = realBaselineData &&
+    Object.values(realBaselineData).some(v => v != null)
 
   return (
     <div className="subpanel">
@@ -106,25 +159,51 @@ export default function PredictionPanel() {
       <div className="pred-layout">
         {/* ── Sliders ── */}
         <div className="retro-card pred-inputs">
-          <div className="sp-chart-title muted-text">INPUT PARAMETERS</div>
-          {SLIDERS.map(s => (
-            <div key={s.key} className="pred-slider-row">
-              <div className="pred-slider-header">
-                <span className="field-label">{s.label}</span>
-                <span className="pred-val glow-text">{inputs[s.key]}{s.unit}</span>
+          <div className="pred-inputs-header">
+            <div className="sp-chart-title muted-text">INPUT PARAMETERS</div>
+            {!baselineLoading && (
+              <button
+                className="retro-btn pred-reset-btn"
+                onClick={resetToBaseline}
+                title={hasAnyBaseline
+                  ? 'Reset sliders to your real measured data'
+                  : 'Reset sliders to default values'}
+              >
+                ↺ RESET TO BASELINE
+              </button>
+            )}
+          </div>
+
+          {SLIDERS.map(s => {
+            const realVal = realBaselineData?.[s.key]
+            return (
+              <div key={s.key} className="pred-slider-row">
+                <div className="pred-slider-header">
+                  <span className="field-label">{s.label}</span>
+                  <div className="pred-val-group">
+                    {realVal != null && (
+                      <span className="pred-baseline-val muted-text">
+                        Real: {realVal}{s.unit}
+                      </span>
+                    )}
+                    <span className="pred-val glow-text">
+                      {currentSimulatedData[s.key]}{s.unit}
+                    </span>
+                  </div>
+                </div>
+                <input
+                  type="range" className="pred-slider"
+                  min={s.min} max={s.max} step={s.step}
+                  value={currentSimulatedData[s.key]}
+                  onChange={e => up(s.key, e.target.value)}
+                />
+                <div className="pred-slider-range muted-text">
+                  <span>{s.min}{s.unit}</span>
+                  <span>{s.max}{s.unit}</span>
+                </div>
               </div>
-              <input
-                type="range" className="pred-slider"
-                min={s.min} max={s.max} step={s.step}
-                value={inputs[s.key]}
-                onChange={e => up(s.key, e.target.value)}
-              />
-              <div className="pred-slider-range muted-text">
-                <span>{s.min}{s.unit}</span>
-                <span>{s.max}{s.unit}</span>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* ── Result ── */}
@@ -201,6 +280,83 @@ export default function PredictionPanel() {
           </div>
         </div>
       </div>
+
+      {/* ── Data Sources Active ── */}
+      <div className="retro-card pred-sources">
+        <div className="sp-chart-title muted-text">DATA SOURCES ACTIVE</div>
+        <div className="pred-source-list">
+
+          {/* Cohort — always on */}
+          <div className="pred-source-row">
+            <span className="pred-source-on">✓</span>
+            <span className="pred-source-name">COHORT DATABASE</span>
+            <span className="muted-text pred-source-detail">
+              feeds all 3 ML models · peer comparison · benchmarking
+            </span>
+            <span className="pred-source-badge muted-text">1 000 STUDENTS</span>
+          </div>
+
+          {/* Apple Health */}
+          <div className="pred-source-row">
+            <span className={dataSources?.health ? 'pred-source-on' : 'pred-source-off'}>
+              {dataSources?.health ? '✓' : '○'}
+            </span>
+            <span className={`pred-source-name${dataSources?.health ? '' : ' pred-source-inactive'}`}>
+              APPLE HEALTH METRICS
+            </span>
+            <span className="muted-text pred-source-detail">
+              {dataSources?.health
+                ? 'feeds sleep baseline · heart rate · activity data'
+                : 'import Health JSON to unlock sleep baseline'}
+            </span>
+            {dataSources?.healthCount > 0 && (
+              <span className="pred-source-badge muted-text">
+                {dataSources.healthCount} METRICS
+              </span>
+            )}
+          </div>
+
+          {/* Uploaded files */}
+          <div className="pred-source-row">
+            <span className={dataSources?.grades ? 'pred-source-on' : 'pred-source-off'}>
+              {dataSources?.grades ? '✓' : '○'}
+            </span>
+            <span className={`pred-source-name${dataSources?.grades ? '' : ' pred-source-inactive'}`}>
+              UPLOADED GRADE SHEETS
+            </span>
+            <span className="muted-text pred-source-detail">
+              {dataSources?.grades
+                ? 'grade history available for analysis'
+                : 'upload academic files to unlock grade history'}
+            </span>
+            {dataSources?.gradeCount > 0 && (
+              <span className="pred-source-badge muted-text">
+                {dataSources.gradeCount} GRADES
+              </span>
+            )}
+          </div>
+
+          {/* App Usage — not yet connected */}
+          <div className="pred-source-row">
+            <span className="pred-source-off">○</span>
+            <span className="pred-source-name pred-source-inactive">APP USAGE LOGS</span>
+            <span className="muted-text pred-source-detail">
+              would feed focus ratio · productive vs. distracting app split
+            </span>
+          </div>
+
+          {/* Study Sessions — not yet connected */}
+          <div className="pred-source-row">
+            <span className="pred-source-off">○</span>
+            <span className="pred-source-name pred-source-inactive">STUDY SESSION LOGS</span>
+            <span className="muted-text pred-source-detail">
+              would feed study hours · session duration · break patterns
+            </span>
+          </div>
+
+        </div>
+      </div>
+
     </div>
   )
 }
