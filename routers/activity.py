@@ -82,7 +82,44 @@ async def list_app_usage_imports(session_id: str = Query(...)):
         """,
         (session_id,),
     )
-    return {"imports": rows}
+
+    stats = await fetch_one(
+        """
+        SELECT
+            COALESCE(SUM(ae.duration_mins), 0)                                                           AS total_mins,
+            COALESCE(SUM(CASE WHEN ae.category = 'Productive'   THEN ae.duration_mins ELSE 0 END), 0)   AS productive_mins,
+            COALESCE(SUM(CASE WHEN ae.category = 'Distracting'  THEN ae.duration_mins ELSE 0 END), 0)   AS distracting_mins
+        FROM app_usage_entries ae
+        JOIN app_usage_imports ai ON ai.import_id = ae.import_id
+        WHERE ai.session_id = %s
+        """,
+        (session_id,),
+    )
+
+    by_app = await fetch_all(
+        """
+        SELECT ae.app_name, MAX(ae.category) AS category, SUM(ae.duration_mins) AS total_mins
+        FROM   app_usage_entries ae
+        JOIN   app_usage_imports ai ON ai.import_id = ae.import_id
+        WHERE  ai.session_id = %s
+        GROUP  BY ae.app_name
+        ORDER  BY total_mins DESC
+        """,
+        (session_id,),
+    )
+
+    return {
+        "imports": rows,
+        "summary": {
+            "total_mins":      int(stats["total_mins"])       if stats else 0,
+            "productive_mins": int(stats["productive_mins"])  if stats else 0,
+            "distracting_mins": int(stats["distracting_mins"]) if stats else 0,
+            "by_app": [
+                {"app_name": a["app_name"], "category": a["category"], "total_mins": int(a["total_mins"])}
+                for a in by_app
+            ],
+        },
+    }
 
 
 @router.get("/app-usage/{import_id}")
@@ -176,7 +213,47 @@ async def list_study_imports(session_id: str = Query(...)):
         """,
         (session_id,),
     )
-    return {"imports": rows}
+
+    stats = await fetch_one(
+        """
+        SELECT COUNT(*) AS total_sessions, COALESCE(SUM(se.duration_mins), 0) AS total_mins
+        FROM study_entries se
+        JOIN study_imports si ON si.import_id = se.import_id
+        WHERE si.session_id = %s
+        """,
+        (session_id,),
+    )
+
+    daily = await fetch_all(
+        """
+        SELECT se.started_at::date AS day,
+               ROUND(SUM(se.duration_mins)::numeric / 60.0, 2) AS hours
+        FROM study_entries se
+        JOIN study_imports si ON si.import_id = se.import_id
+        WHERE si.session_id = %s
+          AND se.started_at::date >= CURRENT_DATE - INTERVAL '6 days'
+        GROUP BY se.started_at::date
+        ORDER BY day
+        """,
+        (session_id,),
+    )
+
+    total_sessions = int(stats["total_sessions"]) if stats else 0
+    total_mins     = int(stats["total_mins"])      if stats else 0
+    total_hours    = round(total_mins / 60, 1)
+
+    return {
+        "imports": rows,
+        "summary": {
+            "total_sessions":    total_sessions,
+            "total_hours":       total_hours,
+            "avg_session_hours": round(total_hours / total_sessions, 1) if total_sessions else 0,
+            "last_7_days": [
+                {"date": str(d["day"]), "hours": float(d["hours"])}
+                for d in daily
+            ],
+        },
+    }
 
 
 @router.get("/study-logs/{import_id}")

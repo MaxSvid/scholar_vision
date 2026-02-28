@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import './SubPanel.css'
 import './PredictionPanel.css'
 
@@ -60,8 +60,8 @@ export default function PredictionPanel() {
   const [error,   setError]   = useState(null)
   const debounceRef = useRef(null)
 
-  // ── Fetch real baseline on mount ──────────────────────────────────────────
-  useEffect(() => {
+  // ── Fetch real baseline (called on mount + after any new import) ──────────
+  const fetchBaseline = useCallback(() => {
     const sessionId = getSessionId()
     fetch(`/api/profile/baseline?session_id=${sessionId}`)
       .then(r => {
@@ -71,7 +71,7 @@ export default function PredictionPanel() {
       .then(data => {
         setRealBaselineData(data.baseline)
         setDataSources(data.sources)
-        // Seed sliders from real data; keep DEFAULTS where DB has no value yet
+        // Seed sliders from real data; keep current value where DB has no value yet
         setCurrentSimulatedData(prev => ({
           studyHours:    data.baseline.studyHours    ?? prev.studyHours,
           attentionSpan: data.baseline.attentionSpan ?? prev.attentionSpan,
@@ -82,7 +82,16 @@ export default function PredictionPanel() {
       })
       .catch(() => {})   // baseline is optional — silently fall back to defaults
       .finally(() => setBaselineLoading(false))
-  }, [])
+  }, []) // setters are stable — no deps needed
+
+  // Fetch on mount
+  useEffect(() => { fetchBaseline() }, [fetchBaseline])
+
+  // Re-fetch whenever AppUsage or StudyTracker completes an import
+  useEffect(() => {
+    window.addEventListener('sv:data-imported', fetchBaseline)
+    return () => window.removeEventListener('sv:data-imported', fetchBaseline)
+  }, [fetchBaseline])
 
   // ── Auto-predict with 400ms debounce whenever sliders or mode change ──────
   useEffect(() => {
@@ -222,7 +231,7 @@ export default function PredictionPanel() {
             <div className="pred-score-ring">
               <svg viewBox="0 0 120 120" className="pred-ring-svg">
                 <circle cx="60" cy="60" r="50" className="ring-track" />
-                <circleCOHORT DATABASE
+                <circle
                   cx="60" cy="60" r="50"
                   className="ring-fill"
                   style={{ stroke: gradeColor }}
@@ -343,22 +352,44 @@ export default function PredictionPanel() {
             )}
           </div>
 
-          {/* App Usage — not yet connected */}
+          {/* App Usage */}
           <div className="pred-source-row">
-            <span className="pred-source-off">○</span>
-            <span className="pred-source-name pred-source-inactive">APP USAGE LOGS</span>
-            <span className="muted-text pred-source-detail">
-              would feed focus ratio · productive vs. distracting app split
+            <span className={dataSources?.appUsage ? 'pred-source-on' : 'pred-source-off'}>
+              {dataSources?.appUsage ? '✓' : '○'}
             </span>
+            <span className={`pred-source-name${dataSources?.appUsage ? '' : ' pred-source-inactive'}`}>
+              APP USAGE LOGS
+            </span>
+            <span className="muted-text pred-source-detail">
+              {dataSources?.appUsage
+                ? 'feeds focus ratio · productive vs. distracting app split'
+                : 'import app usage JSON to unlock focus baseline'}
+            </span>
+            {dataSources?.appUsageCount > 0 && (
+              <span className="pred-source-badge muted-text">
+                {dataSources.appUsageCount} IMPORT{dataSources.appUsageCount !== 1 ? 'S' : ''}
+              </span>
+            )}
           </div>
 
-          {/* Study Sessions — not yet connected */}
+          {/* Study Sessions */}
           <div className="pred-source-row">
-            <span className="pred-source-off">○</span>
-            <span className="pred-source-name pred-source-inactive">STUDY SESSION LOGS</span>
-            <span className="muted-text pred-source-detail">
-              would feed study hours · session duration · break patterns
+            <span className={dataSources?.studySessions ? 'pred-source-on' : 'pred-source-off'}>
+              {dataSources?.studySessions ? '✓' : '○'}
             </span>
+            <span className={`pred-source-name${dataSources?.studySessions ? '' : ' pred-source-inactive'}`}>
+              STUDY SESSION LOGS
+            </span>
+            <span className="muted-text pred-source-detail">
+              {dataSources?.studySessions
+                ? 'feeds study hours · attention span · break frequency'
+                : 'import study sessions JSON to unlock study baselines'}
+            </span>
+            {dataSources?.studySessionCount > 0 && (
+              <span className="pred-source-badge muted-text">
+                {dataSources.studySessionCount} IMPORT{dataSources.studySessionCount !== 1 ? 'S' : ''}
+              </span>
+            )}
           </div>
 
         </div>

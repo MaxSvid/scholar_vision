@@ -21,6 +21,7 @@ export default function StudyTracker({ sessions, setSessions }) {
 
   // Import state
   const [imports,  setImports]  = useState([])
+  const [summary,  setSummary]  = useState(null)
   const [dragging, setDragging] = useState(false)
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState(null)
@@ -41,6 +42,7 @@ export default function StudyTracker({ sessions, setSessions }) {
       if (!res.ok) return
       const data = await res.json()
       setImports(data.imports || [])
+      setSummary(data.summary  || null)
     } catch { /* backend offline */ }
   }
 
@@ -60,6 +62,8 @@ export default function StudyTracker({ sessions, setSessions }) {
       }
       if (!res.ok) throw new Error(`Server error (${res.status})`)
       await fetchImports()
+      window.dispatchEvent(new CustomEvent('sv:data-imported'))
+      if (inputRef.current) inputRef.current.value = ''
     } catch (e) {
       setError(e.message)
     } finally {
@@ -70,7 +74,7 @@ export default function StudyTracker({ sessions, setSessions }) {
   const handleFile = async file => {
     if (!file.name.endsWith('.json')) { setError('Only .json files are accepted'); return }
     const text = await file.text()
-    submitJson(text)
+    await submitJson(text)
   }
 
   const onDrop = e => {
@@ -80,9 +84,9 @@ export default function StudyTracker({ sessions, setSessions }) {
   }
 
   const removeImport = async id => {
-    try { await fetch(`/api/activity/study-logs/${id}`, { method: 'DELETE' }) } catch { /* best-effort */ }
-    setImports(prev => prev.filter(i => i.import_id !== id))
     if (expanded === id) { setExpanded(null); setDetail(null) }
+    try { await fetch(`/api/activity/study-logs/${id}`, { method: 'DELETE' }) } catch { /* best-effort */ }
+    await fetchImports()
   }
 
   const toggleDetail = async id => {
@@ -95,9 +99,13 @@ export default function StudyTracker({ sessions, setSessions }) {
     } catch { setDetail({ error: 'Could not load detail' }) }
   }
 
-  // Existing manual stats
-  const totalHours = sessions.reduce((s, x) => s + x.hours, 0)
-  const avgHours   = sessions.length ? (totalHours / sessions.length).toFixed(1) : 0
+  // Combined stats: imported (from backend summary) + manually entered
+  const importedHours    = summary?.total_hours    ?? 0
+  const importedSessions = summary?.total_sessions ?? 0
+  const manualHours      = sessions.reduce((s, x) => s + x.hours, 0)
+  const totalHours       = importedHours + manualHours
+  const totalSessions    = importedSessions + sessions.length
+  const avgHours         = totalSessions ? (totalHours / totalSessions).toFixed(1) : 0
 
   const addSession = () => {
     if (!form.subject || !form.hours) return
@@ -111,13 +119,17 @@ export default function StudyTracker({ sessions, setSessions }) {
 
   const removeSession = id => setSessions(prev => prev.filter(s => s.id !== id))
 
-  // Weekly bar chart data (last 7 days)
+  // Weekly bar chart — imported hours (from backend) merged with manually entered hours
+  const importedByDate = Object.fromEntries(
+    (summary?.last_7_days ?? []).map(d => [d.date, d.hours])
+  )
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date()
     d.setDate(d.getDate() - (6 - i))
-    const key = d.toISOString().slice(0, 10)
-    const hrs = sessions.filter(s => s.date === key).reduce((a, s) => a + s.hours, 0)
-    return { label: d.toLocaleDateString('en', { weekday: 'short' }).toUpperCase(), hrs }
+    const key        = d.toISOString().slice(0, 10)
+    const manualHrs  = sessions.filter(s => s.date === key).reduce((a, s) => a + s.hours, 0)
+    const importedHrs = importedByDate[key] ?? 0
+    return { label: d.toLocaleDateString('en', { weekday: 'short' }).toUpperCase(), hrs: manualHrs + importedHrs }
   })
   const maxHrs = Math.max(...last7.map(d => d.hrs), 1)
 
@@ -218,7 +230,7 @@ export default function StudyTracker({ sessions, setSessions }) {
           <div className="sp-stat-lbl">AVG / SESSION</div>
         </div>
         <div className="retro-card sp-stat">
-          <div className="sp-stat-val">{sessions.length}</div>
+          <div className="sp-stat-val">{totalSessions}</div>
           <div className="sp-stat-lbl">SESSIONS</div>
         </div>
       </div>

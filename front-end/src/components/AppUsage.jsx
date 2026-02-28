@@ -34,6 +34,7 @@ export default function AppUsage({ logs, setLogs }) {
 
   // Import state
   const [imports,  setImports]  = useState([])
+  const [summary,  setSummary]  = useState(null)
   const [dragging, setDragging] = useState(false)
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState(null)
@@ -50,6 +51,7 @@ export default function AppUsage({ logs, setLogs }) {
       if (!res.ok) return
       const data = await res.json()
       setImports(data.imports || [])
+      setSummary(data.summary  || null)
     } catch { /* backend offline */ }
   }
 
@@ -69,6 +71,8 @@ export default function AppUsage({ logs, setLogs }) {
       }
       if (!res.ok) throw new Error(`Server error (${res.status})`)
       await fetchImports()
+      window.dispatchEvent(new CustomEvent('sv:data-imported'))
+      if (inputRef.current) inputRef.current.value = ''
     } catch (e) {
       setError(e.message)
     } finally {
@@ -79,7 +83,7 @@ export default function AppUsage({ logs, setLogs }) {
   const handleFile = async file => {
     if (!file.name.endsWith('.json')) { setError('Only .json files are accepted'); return }
     const text = await file.text()
-    submitJson(text)
+    await submitJson(text)
   }
 
   const onDrop = e => {
@@ -89,9 +93,9 @@ export default function AppUsage({ logs, setLogs }) {
   }
 
   const removeImport = async id => {
-    try { await fetch(`/api/activity/app-usage/${id}`, { method: 'DELETE' }) } catch { /* best-effort */ }
-    setImports(prev => prev.filter(i => i.import_id !== id))
     if (expanded === id) { setExpanded(null); setDetail(null) }
+    try { await fetch(`/api/activity/app-usage/${id}`, { method: 'DELETE' }) } catch { /* best-effort */ }
+    await fetchImports()
   }
 
   const toggleDetail = async id => {
@@ -104,20 +108,28 @@ export default function AppUsage({ logs, setLogs }) {
     } catch { setDetail({ error: 'Could not load detail' }) }
   }
 
-  // Existing manual stats
-  const total        = logs.reduce((s, l) => s + l.hours, 0)
-  const productive   = logs.filter(l => l.category === 'Productive').reduce((s, l) => s + l.hours, 0)
-  const distracting  = logs.filter(l => l.category === 'Distracting').reduce((s, l) => s + l.hours, 0)
-  const focusRatio   = total ? Math.round((productive / total) * 100) : 0
+  // Combined stats: imported (from backend summary) + manually entered
+  const importedTotal = (summary?.total_mins       ?? 0) / 60
+  const importedProd  = (summary?.productive_mins  ?? 0) / 60
+  const importedDist  = (summary?.distracting_mins ?? 0) / 60
+  const manualTotal   = logs.reduce((s, l) => s + l.hours, 0)
+  const manualProd    = logs.filter(l => l.category === 'Productive').reduce((s, l) => s + l.hours, 0)
+  const manualDist    = logs.filter(l => l.category === 'Distracting').reduce((s, l) => s + l.hours, 0)
+  const total         = importedTotal + manualTotal
+  const productive    = importedProd  + manualProd
+  const distracting   = importedDist  + manualDist
+  const focusRatio    = total ? Math.round((productive / total) * 100) : 0
 
-  const byApp = Object.values(
-    logs.reduce((acc, l) => {
-      if (!acc[l.app]) acc[l.app] = { app: l.app, hours: 0, category: l.category }
-      acc[l.app].hours += l.hours
-      return acc
-    }, {})
-  ).sort((a, b) => b.hours - a.hours)
-
+  // Per-app breakdown: seed from imported data, then add manual entries on top
+  const appMap = {}
+  for (const a of (summary?.by_app ?? [])) {
+    appMap[a.app_name] = { app: a.app_name, hours: a.total_mins / 60, category: a.category }
+  }
+  for (const l of logs) {
+    if (!appMap[l.app]) appMap[l.app] = { app: l.app, hours: 0, category: l.category }
+    appMap[l.app].hours += l.hours
+  }
+  const byApp  = Object.values(appMap).sort((a, b) => b.hours - a.hours)
   const maxApp = byApp[0]?.hours || 1
 
   const addLog = () => {
