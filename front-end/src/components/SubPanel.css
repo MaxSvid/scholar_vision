@@ -1,0 +1,255 @@
+.subpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  max-width: 900px;
+}
+
+/* Stat row */
+.sp-stat-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.sp-stat {
+  flex: 1;
+  min-width: 100px;
+  text-align: center;
+  padding: 1rem;
+}
+
+.sp-stat-val {
+  font-size: 1.6rem;
+  color: var(--fg);
+  text-shadow: 0 0 8px var(--fg);
+  line-height: 1.1;
+}
+
+.sp-stat-lbl {
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  color: var(--fg-dim);
+  margin-top: 0.3rem;
+}
+
+/* Chart wrapper */
+.sp-chart-wrap {
+  padding: 1rem;
+}
+
+.sp-chart-title {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  margin-bottom: 1rem;
+}
+
+/* Vertical bar chart */
+.sp-bar-chart {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  height: 100px;
+}
+
+.sp-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  height: 100%;
+}
+
+.sp-bar-track {
+  flex: 1;
+  width: 100%;
+  background: var(--bg-3);
+  display: flex;
+  align-items: flex-end;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.sp-bar-fill {
+  width: 100%;
+  background: var(--fg);
+  box-shadow: 0 0 6px var(--fg);
+  border-radius: var(--radius) var(--radius) 0 0;
+  transition: height 0.4s ease;
+  min-height: 2px;
+}
+
+.sp-bar-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+}
+
+.sp-bar-val {
+  font-size: 0.65rem;
+  color: var(--fg-dim);
+}
+
+/* Horizontal bar chart */
+.sp-hbar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sp-hbar-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 50px 90px;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.sp-hbar-name {
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sp-hbar-track {
+  height: 8px;
+  background: var(--bg-3);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.sp-hbar-fill {
+  height: 100%;
+  border-radius: var(--radius);
+  transition: width 0.4s ease;
+  min-width: 2px;
+}
+
+.sp-hbar-val { font-size: 0.72rem; text-align: right; }
+.sp-hbar-cat { font-size: 0.62rem; letter-spacing: 0.06em; text-align: right; }
+
+/* Actions */
+.sp-action-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Form */
+.sp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: slide-in 0.2s ease;
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.sp-form-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.sp-form-col {
+  flex: 1;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Session list */
+.sp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sp-session-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  flex-wrap: wrap;
+}
+
+.sp-session-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.sp-session-subject {
+  font-size: 0.85rem;
+  color: var(--fg);
+}
+
+.sp-session-hours {
+  font-size: 0.8rem;
+}
+
+.sp-session-mid {
+  font-size: 0.75rem;
+  flex: 2;
+}
+
+.sp-delete {
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  padding: 0.2rem 0.4rem;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.sp-delete:hover { color: var(--fg); }
+
+.sp-empty {
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 0.82rem;
+  border: 1px dashed var(--border);
+}
+
+/* Attention timer */
+.att-timer-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.5rem;
+}
+
+.att-timer-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+}
+
+.att-timer-display {
+  font-size: 3.5rem;
+  letter-spacing: 0.15em;
+  line-height: 1;
+}
+
+.att-timer-mode {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+}
+
+.att-timer-btns {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Shared label */
+.field-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: var(--fg-dim);
+}

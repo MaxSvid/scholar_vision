@@ -1,0 +1,155 @@
+.pred-layout {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.pred-inputs {
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.pred-slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pred-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pred-val {
+  font-size: 0.9rem;
+  min-width: 48px;
+  text-align: right;
+}
+
+.pred-slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--fg-muted);
+  border-radius: 0;
+  outline: none;
+  cursor: pointer;
+}
+
+.pred-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--fg);
+  border-radius: 0;
+  box-shadow: 0 0 6px var(--fg);
+  cursor: pointer;
+}
+
+.pred-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--fg);
+  border: none;
+  border-radius: 0;
+  box-shadow: 0 0 6px var(--fg);
+  cursor: pointer;
+}
+
+.pred-slider-range {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+}
+
+/* Result column */
+.pred-result-col {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pred-score-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: center;
+}
+
+.pred-score-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+}
+
+/* SVG ring */
+.pred-score-ring {
+  position: relative;
+  width: 130px;
+  height: 130px;
+}
+
+.pred-ring-svg {
+  width: 130px;
+  height: 130px;
+}
+
+.ring-track {
+  fill: none;
+  stroke: var(--fg-muted);
+  stroke-width: 8;
+}
+
+.ring-fill {
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 8;
+  stroke-linecap: square;
+  filter: drop-shadow(0 0 6px var(--fg));
+  transition: stroke-dasharray 0.5s ease;
+}
+
+.pred-ring-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.pred-pct {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.pred-grade {
+  font-size: 2.5rem;
+  letter-spacing: 0.1em;
+}
+
+.pred-trend {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+/* Tips */
+.pred-tips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.pred-tip {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--fg-dim);
+}

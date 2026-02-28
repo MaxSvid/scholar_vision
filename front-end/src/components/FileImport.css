@@ -1,0 +1,113 @@
+.fi-dropzone {
+  border: 1px dashed var(--border-hi);
+  background: var(--bg-2);
+  padding: 2.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  border-radius: var(--radius);
+}
+
+.fi-dropzone:hover,
+.fi-dropzone.dragging {
+  border-color: var(--fg);
+  box-shadow: var(--shadow-lg);
+  background: var(--bg-3);
+}
+
+.fi-drop-icon {
+  font-size: 2.5rem;
+  color: var(--fg-dim);
+  text-shadow: 0 0 10px var(--fg-dim);
+  transition: color 0.2s;
+}
+
+.fi-dropzone.dragging .fi-drop-icon { color: var(--fg); }
+
+.fi-drop-text {
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  color: var(--fg-dim);
+}
+
+.fi-drop-sub {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+}
+
+/* File list */
+.fi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.fi-file-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.fi-file-icon {
+  font-size: 1.6rem;
+  color: var(--fg-dim);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.fi-file-info {
+  flex: 1;
+  min-width: 140px;
+}
+
+.fi-file-name {
+  font-size: 0.85rem;
+  color: var(--fg);
+  word-break: break-all;
+}
+
+.fi-file-meta {
+  font-size: 0.7rem;
+  margin-top: 0.2rem;
+}
+
+.fi-file-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.fi-cat-badge {
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  border: 1px solid var(--border);
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius);
+}
+
+.fi-notes {
+  font-size: 0.72rem;
+  font-style: italic;
+}
+
+.fi-edit-btn {
+  font-size: 0.7rem;
+  padding: 0.3rem 0.6rem;
+}
+
+/* Inline edit row */
+.fi-edit-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  flex: 1;
+}
+
+.fi-cat-select   { max-width: 140px; }
+.fi-notes-input  { flex: 1; min-width: 120px; }
