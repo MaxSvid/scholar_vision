@@ -31,3 +31,24 @@ CREATE TABLE career_outcomes (
     salary_starting INT,
     is_top_tier_company BOOLEAN
 );
+
+--- User sign up / login page setup
+
+-- 1. Main User Table (Internal reference)
+CREATE TABLE users (
+    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. OAuth Identities (The "Google" link)
+CREATE TABLE user_identities (
+    identity_id SERIAL PRIMARY KEY,
+    user_id UUID REFERENCES users(user_id),
+    provider VARCHAR(50), -- e.g., 'google'
+    provider_user_id VARCHAR(255) UNIQUE, -- Google's 'sub' (subject) ID
+    access_token TEXT, -- Temporary key for API calls
+    refresh_token TEXT, -- Key to get new access tokens
+    profile_picture_url TEXT,
+    last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
