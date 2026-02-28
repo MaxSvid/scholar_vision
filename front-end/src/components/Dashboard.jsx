@@ -5,6 +5,7 @@ import AttentionSpan from './AttentionSpan'
 import PredictionPanel from './PredictionPanel'
 import FileImport from './FileImport'
 import DataGraph3D from './DataGraph3D'
+import PeerGraph3D from './PeerGraph3D'
 import './Dashboard.css'
 
 const TABS = [
@@ -14,6 +15,7 @@ const TABS = [
   { id: 'attention',   label: 'Attention',   icon: '◉' },
   { id: 'prediction',  label: 'Prediction',  icon: '◇' },
   { id: 'graph3d',     label: '3D Graph',    icon: '◈' },
+  { id: 'peers',       label: 'Peers',       icon: '❂' },
   { id: 'files',       label: 'Files',       icon: '▦' },
 ]
 
@@ -94,6 +96,7 @@ export default function Dashboard({ user, onLogout }) {
               attSessions={attSessions}
             />
           )}
+          {tab === 'peers'      && <PeerGraph3D />}
           {tab === 'files'      && <FileImport />}
         </main>
       </div>
