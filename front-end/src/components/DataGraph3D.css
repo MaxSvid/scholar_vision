@@ -24,6 +24,38 @@
   flex-shrink: 0;
 }
 
+/* Group selector */
+.graph3d-groups {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.g3d-group-btn {
+  background: none;
+  border: 1px solid var(--border-hi);
+  color: var(--fg-muted);
+  padding: 0.3rem 0.8rem;
+  font-size: 0.7rem;
+  font-family: var(--font-main);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.g3d-group-btn:hover {
+  color: var(--fg);
+  border-color: var(--fg);
+}
+
+.g3d-group-btn.active {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+
 /* Canvas container */
 .graph3d-canvas {
   position: relative;

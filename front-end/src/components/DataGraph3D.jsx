@@ -5,43 +5,29 @@ import './DataGraph3D.css'
 
 // ─── STATIC GRAPH STRUCTURE ─────────────────────────────────────────────────
 const NODE_DEFS = [
-  // Center: outcome prediction
   { id: 'outcome',     label: 'PREDICTED OUTCOME', group: 'outcome',   radius: 0.48, color: '#c8ff00' },
-
-  // Category layer
   { id: 'study',       label: 'STUDY TIME',         group: 'category',  radius: 0.30, color: '#d4af37' },
   { id: 'attention',   label: 'ATTENTION SPAN',      group: 'category',  radius: 0.30, color: '#d4af37' },
   { id: 'apps',        label: 'APP USAGE',           group: 'category',  radius: 0.30, color: '#d4af37' },
   { id: 'major',       label: 'MAJOR / FIELD',       group: 'category',  radius: 0.30, color: '#d4af37' },
   { id: 'websites',    label: 'WEBSITES',            group: 'category',  radius: 0.30, color: '#d4af37' },
-
-  // Study leaves
   { id: 'avg-time',    label: 'AVG TIME: —',         group: 'leaf-prod', radius: 0.16, color: '#44cc66', parent: 'study' },
   { id: 'session-dur', label: 'SESSION: —',          group: 'leaf-prod', radius: 0.16, color: '#44cc66', parent: 'study' },
   { id: 'sleep',       label: 'SLEEP: 7h/NIGHT',     group: 'leaf-prod', radius: 0.14, color: '#44cc66', parent: 'study' },
-
-  // Attention leaves
   { id: 'att-avg',     label: 'AVG SPAN: —',         group: 'leaf-prod', radius: 0.16, color: '#44cc66', parent: 'attention' },
   { id: 'att-breaks',  label: 'BREAKS: —',           group: 'leaf-neut', radius: 0.14, color: '#ccaa33', parent: 'attention' },
   { id: 'att-qual',    label: 'FOCUS QUALITY: —',    group: 'leaf-prod', radius: 0.13, color: '#44cc66', parent: 'attention' },
-
-  // App leaves – productive
   { id: 'obsidian',    label: 'Obsidian',            group: 'leaf-prod', radius: 0.18, color: '#44cc66', parent: 'apps' },
   { id: 'vscode',      label: 'VS Code',             group: 'leaf-prod', radius: 0.18, color: '#44cc66', parent: 'apps' },
   { id: 'anki',        label: 'Anki',                group: 'leaf-prod', radius: 0.15, color: '#44cc66', parent: 'apps' },
   { id: 'ai-agents',   label: 'AI Agents',           group: 'leaf-prod', radius: 0.18, color: '#44cc66', parent: 'apps' },
   { id: 'notion',      label: 'Notion',              group: 'leaf-prod', radius: 0.15, color: '#44cc66', parent: 'apps' },
-  // App leaves – distracting
   { id: 'tiktok',      label: 'TikTok',              group: 'leaf-dist', radius: 0.17, color: '#cc3333', parent: 'apps' },
   { id: 'discord',     label: 'Discord',             group: 'leaf-neut', radius: 0.14, color: '#ccaa33', parent: 'apps' },
   { id: 'youtube-a',   label: 'YouTube',             group: 'leaf-neut', radius: 0.15, color: '#ccaa33', parent: 'apps' },
-
-  // Major leaves
   { id: 'field',       label: 'FIELD OF STUDY',      group: 'leaf-blue', radius: 0.18, color: '#7f7fff', parent: 'major' },
   { id: 'year',        label: 'YEAR / LEVEL',        group: 'leaf-blue', radius: 0.16, color: '#7f7fff', parent: 'major' },
   { id: 'target',      label: 'WEEKLY TARGET',       group: 'leaf-blue', radius: 0.14, color: '#7f7fff', parent: 'major' },
-
-  // Website leaves
   { id: 'scholar',     label: 'Google Scholar',      group: 'leaf-prod', radius: 0.16, color: '#44cc66', parent: 'websites' },
   { id: 'arxiv',       label: 'ArXiv',               group: 'leaf-prod', radius: 0.14, color: '#44cc66', parent: 'websites' },
   { id: 'reddit',      label: 'Reddit',              group: 'leaf-dist', radius: 0.15, color: '#cc3333', parent: 'websites' },
@@ -77,7 +63,24 @@ const EDGE_DEFS = [
   { from: 'websites', to: 'yt-study' },
 ]
 
-// App name → node id mapping for matching logged apps to graph nodes
+// Which node ids belong to each selectable group (always include outcome)
+const GROUP_NODES = {
+  study:     ['outcome', 'study', 'avg-time', 'session-dur', 'sleep'],
+  attention: ['outcome', 'attention', 'att-avg', 'att-breaks', 'att-qual'],
+  apps:      ['outcome', 'apps', 'obsidian', 'vscode', 'anki', 'ai-agents', 'notion', 'tiktok', 'discord', 'youtube-a'],
+  major:     ['outcome', 'major', 'field', 'year', 'target'],
+  websites:  ['outcome', 'websites', 'scholar', 'arxiv', 'reddit', 'yt-study'],
+}
+
+const GROUP_BUTTONS = [
+  { id: null,        label: 'ALL' },
+  { id: 'study',     label: 'STUDY TIME' },
+  { id: 'attention', label: 'ATTENTION' },
+  { id: 'apps',      label: 'APP USAGE' },
+  { id: 'major',     label: 'ACADEMIC' },
+  { id: 'websites',  label: 'WEBSITES' },
+]
+
 const APP_NODE_MAP = {
   'Obsidian':        'obsidian',
   'VS Code':         'vscode',
@@ -88,7 +91,8 @@ const APP_NODE_MAP = {
   'YouTube (Study)': 'youtube-a',
 }
 
-// Fibonacci sphere – evenly distributes n points on a unit sphere of radius r
+const BASE_EMISSIVE = { outcome: 0.55, category: 0.22, default: 0.22 }
+
 function fibSphere(n, r) {
   const pts = []
   const golden = Math.PI * (3 - Math.sqrt(5))
@@ -101,9 +105,7 @@ function fibSphere(n, r) {
   return pts
 }
 
-// ─── DERIVE LIVE LABELS FROM TRACKER DATA ────────────────────────────────────
 function buildNodes(user, studySessions, appLogs, attSessions) {
-  // Study stats
   const totalStudyHours = studySessions.reduce((s, x) => s + x.hours, 0)
   const studyDays       = new Set(studySessions.map(s => s.date)).size || 1
   const avgDaily        = (totalStudyHours / studyDays).toFixed(1)
@@ -111,7 +113,6 @@ function buildNodes(user, studySessions, appLogs, attSessions) {
     ? Math.round((totalStudyHours / studySessions.length) * 60)
     : null
 
-  // Attention stats
   const avgAttMin = attSessions.length
     ? Math.round(attSessions.reduce((s, x) => s + x.duration, 0) / attSessions.length)
     : null
@@ -122,7 +123,6 @@ function buildNodes(user, studySessions, appLogs, attSessions) {
     ? Math.round(attSessions.filter(s => s.quality === 'High').length / attSessions.length * 100)
     : null
 
-  // App totals by app name
   const appTotals = appLogs.reduce((acc, l) => {
     acc[l.app] = (acc[l.app] || 0) + l.hours
     return acc
@@ -130,37 +130,32 @@ function buildNodes(user, studySessions, appLogs, attSessions) {
 
   return NODE_DEFS.map(n => {
     const node = { ...n }
-
-    // User profile leaves
-    if (n.id === 'field'  && user?.fieldOfStudy) node.label = user.fieldOfStudy.toUpperCase()
-    if (n.id === 'year'   && user?.yearOfStudy)  node.label = user.yearOfStudy.toUpperCase()
-    if (n.id === 'target' && user?.weeklyHours)  node.label = `TARGET: ${user.weeklyHours}H/WK`
-
-    // Study leaves
+    if (n.id === 'field'       && user?.fieldOfStudy) node.label = user.fieldOfStudy.toUpperCase()
+    if (n.id === 'year'        && user?.yearOfStudy)  node.label = user.yearOfStudy.toUpperCase()
+    if (n.id === 'target'      && user?.weeklyHours)  node.label = `TARGET: ${user.weeklyHours}H/WK`
     if (n.id === 'avg-time')    node.label = `AVG TIME: ${avgDaily}H/DAY`
-    if (n.id === 'session-dur') node.label = avgSession != null
-      ? `SESSION: ~${avgSession}MIN`
-      : 'SESSION: —'
-
-    // Attention leaves
-    if (n.id === 'att-avg')    node.label = avgAttMin != null ? `AVG SPAN: ${avgAttMin}MIN` : 'AVG SPAN: —'
-    if (n.id === 'att-breaks') node.label = avgBreaks != null ? `BREAKS: ${avgBreaks}/SESSION` : 'BREAKS: —'
-    if (n.id === 'att-qual')   node.label = highQPct  != null ? `FOCUS QUALITY: ${highQPct}% HIGH` : 'FOCUS QUALITY: —'
-
-    // App leaves – append logged hours when available
+    if (n.id === 'session-dur') node.label = avgSession != null ? `SESSION: ~${avgSession}MIN` : 'SESSION: —'
+    if (n.id === 'att-avg')     node.label = avgAttMin != null ? `AVG SPAN: ${avgAttMin}MIN` : 'AVG SPAN: —'
+    if (n.id === 'att-breaks')  node.label = avgBreaks != null ? `BREAKS: ${avgBreaks}/SESSION` : 'BREAKS: —'
+    if (n.id === 'att-qual')    node.label = highQPct  != null ? `FOCUS QUALITY: ${highQPct}% HIGH` : 'FOCUS QUALITY: —'
     const appName = Object.entries(APP_NODE_MAP).find(([, id]) => id === n.id)?.[0]
-    if (appName && appTotals[appName] != null) {
-      node.label = `${appName}: ${appTotals[appName].toFixed(1)}h`
-    }
-
+    if (appName && appTotals[appName] != null) node.label = `${appName}: ${appTotals[appName].toFixed(1)}h`
     return node
   })
 }
 
 // ─── COMPONENT ───────────────────────────────────────────────────────────────
 export default function DataGraph3D({ user, studySessions = [], appLogs = [], attSessions = [] }) {
-  const mountRef = useRef(null)
-  const [tooltip, setTooltip] = useState({ visible: false, label: '', x: 0, y: 0 })
+  const mountRef        = useRef(null)
+  const meshesRef       = useRef([])
+  const selectedGrpRef  = useRef(null)
+  const [tooltip, setTooltip]           = useState({ visible: false, label: '', x: 0, y: 0 })
+  const [selectedGroup, setSelectedGroup] = useState(null)
+
+  const selectGroup = (id) => {
+    setSelectedGroup(id)
+    selectedGrpRef.current = id
+  }
 
   useEffect(() => {
     const mount = mountRef.current
@@ -169,38 +164,33 @@ export default function DataGraph3D({ user, studySessions = [], appLogs = [], at
     const nodes   = buildNodes(user, studySessions, appLogs, attSessions)
     const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]))
 
-    // ── Position nodes ──────────────────────────────────────────
+    // ── Position ────────────────────────────────────────────────
     nodeMap['outcome'].pos = new THREE.Vector3(0, 0, 0)
-
     const cats = nodes.filter(n => n.group === 'category')
-    const catPos = fibSphere(cats.length, 3.6)
-    cats.forEach((cat, i) => { cat.pos = catPos[i] })
+    fibSphere(cats.length, 3.6).forEach((pos, i) => { cats[i].pos = pos })
 
     const byParent = {}
     nodes.filter(n => n.parent).forEach(n => {
       byParent[n.parent] = byParent[n.parent] || []
       byParent[n.parent].push(n)
     })
-
     const OFFSETS = [0.0, 0.3, -0.25, 0.15, -0.1, 0.4, -0.35, 0.2]
     Object.entries(byParent).forEach(([pid, kids]) => {
       const parent = nodeMap[pid]
       if (!parent?.pos) return
       kids.forEach((kid, i) => {
         const angle = (i / kids.length) * Math.PI * 2
-        const r     = 1.65
         kid.pos = new THREE.Vector3(
-          parent.pos.x + Math.cos(angle) * r,
+          parent.pos.x + Math.cos(angle) * 1.65,
           parent.pos.y + OFFSETS[i % OFFSETS.length],
-          parent.pos.z + Math.sin(angle) * r,
+          parent.pos.z + Math.sin(angle) * 1.65,
         )
       })
     })
 
     // ── Scene ───────────────────────────────────────────────────
     const scene  = new THREE.Scene()
-    const W = mount.clientWidth
-    const H = mount.clientHeight
+    const W = mount.clientWidth, H = mount.clientHeight
     const camera = new THREE.PerspectiveCamera(55, W / H, 0.1, 100)
     camera.position.set(0, 2.5, 13)
 
@@ -223,11 +213,10 @@ export default function DataGraph3D({ user, studySessions = [], appLogs = [], at
     pLight.position.set(5, 7, 5)
     scene.add(pLight)
 
-    // ── Particle background ─────────────────────────────────────
-    const starGeo  = new THREE.BufferGeometry()
-    const starCount = 350
-    const starPos  = new Float32Array(starCount * 3)
-    for (let i = 0; i < starCount * 3; i++) starPos[i] = (Math.random() - 0.5) * 60
+    // Starfield
+    const starGeo = new THREE.BufferGeometry()
+    const starPos = new Float32Array(350 * 3)
+    for (let i = 0; i < starPos.length; i++) starPos[i] = (Math.random() - 0.5) * 60
     starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3))
     scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xaaaaaa, size: 0.06 })))
 
@@ -236,34 +225,38 @@ export default function DataGraph3D({ user, studySessions = [], appLogs = [], at
     nodes.forEach(node => {
       if (!node.pos) return
       const color = new THREE.Color(node.color)
-      const mat   = new THREE.MeshPhongMaterial({
+      const mat = new THREE.MeshPhongMaterial({
         color,
         emissive: color,
-        emissiveIntensity: node.group === 'outcome' ? 0.55 : 0.22,
+        emissiveIntensity: BASE_EMISSIVE[node.group] ?? BASE_EMISSIVE.default,
         shininess: 90,
+        transparent: true,
+        opacity: 1.0,
       })
       const mesh = new THREE.Mesh(new THREE.SphereGeometry(node.radius, 22, 22), mat)
       mesh.position.copy(node.pos)
-      mesh.userData = { id: node.id, label: node.label, group: node.group }
+      mesh.userData = { id: node.id, label: node.label, group: node.group,
+                        baseEmissive: BASE_EMISSIVE[node.group] ?? BASE_EMISSIVE.default }
       scene.add(mesh)
       meshes.push(mesh)
     })
+    meshesRef.current = meshes
 
-    // ── Edge lines ──────────────────────────────────────────────
+    // ── Edges ───────────────────────────────────────────────────
     const edgeMat = new THREE.LineBasicMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.35 })
     EDGE_DEFS.forEach(({ from, to }) => {
       const a = nodeMap[from], b = nodeMap[to]
       if (!a?.pos || !b?.pos) return
-      const geo = new THREE.BufferGeometry().setFromPoints([a.pos.clone(), b.pos.clone()])
-      scene.add(new THREE.Line(geo, edgeMat))
+      scene.add(new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([a.pos.clone(), b.pos.clone()]),
+        edgeMat,
+      ))
     })
 
-    // ── Hover raycasting ────────────────────────────────────────
+    // ── Hover ───────────────────────────────────────────────────
     const raycaster = new THREE.Raycaster()
     const mouse     = new THREE.Vector2()
     let hoveredId   = null
-
-    const BASE_EMISSIVE = { outcome: 0.55, category: 0.22, default: 0.22 }
 
     const onMouseMove = e => {
       const rect = mount.getBoundingClientRect()
@@ -273,12 +266,8 @@ export default function DataGraph3D({ user, studySessions = [], appLogs = [], at
 
       if (hoveredId !== null) {
         const prev = meshes.find(m => m.userData.id === hoveredId)
-        if (prev) {
-          prev.material.emissiveIntensity = BASE_EMISSIVE[prev.userData.group] ?? BASE_EMISSIVE.default
-          prev.scale.setScalar(1)
-        }
+        if (prev) { prev.material.emissiveIntensity = prev.userData.baseEmissive; prev.scale.setScalar(1) }
       }
-
       const hits = raycaster.intersectObjects(meshes)
       if (hits.length > 0) {
         const mesh = hits[0].object
@@ -298,9 +287,7 @@ export default function DataGraph3D({ user, studySessions = [], appLogs = [], at
     // ── Resize ──────────────────────────────────────────────────
     const ro = new ResizeObserver(() => {
       const w = mount.clientWidth, h = mount.clientHeight
-      camera.aspect = w / h
-      camera.updateProjectionMatrix()
-      renderer.setSize(w, h)
+      camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h)
     })
     ro.observe(mount)
 
@@ -311,10 +298,27 @@ export default function DataGraph3D({ user, studySessions = [], appLogs = [], at
     const animate = () => {
       frame = requestAnimationFrame(animate)
       t += 0.012
+
+      // Group highlight — runs every frame so it stays in sync with the ref
+      const sg = selectedGrpRef.current
+      const highlighted = sg ? GROUP_NODES[sg] : null
+      meshes.forEach(m => {
+        if (m.userData.id === hoveredId) return
+        if (!highlighted) {
+          m.material.opacity = 1.0
+          if (m.userData.id !== 'outcome') m.material.emissiveIntensity = m.userData.baseEmissive
+        } else {
+          const active = highlighted.includes(m.userData.id)
+          m.material.opacity            = active ? 1.0 : 0.1
+          m.material.emissiveIntensity  = active ? m.userData.baseEmissive : 0.03
+        }
+      })
+
       if (outcomeMesh && hoveredId !== 'outcome') {
         outcomeMesh.material.emissiveIntensity = 0.45 + Math.sin(t * 1.8) * 0.2
         outcomeMesh.scale.setScalar(1 + Math.sin(t * 1.4) * 0.045)
       }
+
       controls.update()
       renderer.render(scene, camera)
     }
@@ -323,9 +327,7 @@ export default function DataGraph3D({ user, studySessions = [], appLogs = [], at
     return () => {
       cancelAnimationFrame(frame)
       mount.removeEventListener('mousemove', onMouseMove)
-      ro.disconnect()
-      controls.dispose()
-      renderer.dispose()
+      ro.disconnect(); controls.dispose(); renderer.dispose()
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement)
     }
   }, [user, studySessions, appLogs, attSessions])
@@ -333,10 +335,22 @@ export default function DataGraph3D({ user, studySessions = [], appLogs = [], at
   return (
     <div className="subpanel graph3d-panel">
       <div className="panel-title">&gt; 3D DATA INFLUENCE GRAPH</div>
-      <p className="muted-text" style={{ fontSize: '0.8rem', marginBottom: '0.6rem' }}>
-        All data points feeding your academic outcome prediction, visualised as a 3D knowledge graph.
-        Hover nodes for details · drag to orbit · scroll to zoom.
+      <p className="muted-text" style={{ fontSize: '0.8rem', marginBottom: '0.75rem' }}>
+        All data points feeding your academic outcome prediction. Hover nodes · drag to orbit · scroll to zoom.
       </p>
+
+      {/* Group selector */}
+      <div className="graph3d-groups">
+        {GROUP_BUTTONS.map(btn => (
+          <button
+            key={String(btn.id)}
+            className={`g3d-group-btn ${selectedGroup === btn.id ? 'active' : ''}`}
+            onClick={() => selectGroup(btn.id)}
+          >
+            {btn.label}
+          </button>
+        ))}
+      </div>
 
       {/* Legend */}
       <div className="graph3d-legend">
@@ -350,10 +364,7 @@ export default function DataGraph3D({ user, studySessions = [], appLogs = [], at
 
       <div className="graph3d-canvas" ref={mountRef}>
         {tooltip.visible && (
-          <div
-            className="graph3d-tooltip"
-            style={{ left: tooltip.x + 14, top: tooltip.y - 32 }}
-          >
+          <div className="graph3d-tooltip" style={{ left: tooltip.x + 14, top: tooltip.y - 32 }}>
             {tooltip.label}
           </div>
         )}
