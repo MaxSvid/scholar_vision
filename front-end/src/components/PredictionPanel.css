@@ -103,6 +103,18 @@
   font-size: 0.65rem;
 }
 
+.pred-impact-pos {
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  color: #44cc66;
+}
+
+.pred-impact-neg {
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  color: #cc4444;
+}
+
 /* Result column */
 .pred-result-col {
   flex: 1;

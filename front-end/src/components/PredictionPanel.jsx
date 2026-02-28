@@ -175,7 +175,9 @@ export default function PredictionPanel() {
           </div>
 
           {SLIDERS.map(s => {
-            const realVal = realBaselineData?.[s.key]
+            const realVal  = realBaselineData?.[s.key]
+            const shapEntry = result?.shap_values?.find(sv => sv.feature_key === s.key)
+            const impact    = shapEntry?.impact_score
             return (
               <div key={s.key} className="pred-slider-row">
                 <div className="pred-slider-header">
@@ -199,6 +201,11 @@ export default function PredictionPanel() {
                 />
                 <div className="pred-slider-range muted-text">
                   <span>{s.min}{s.unit}</span>
+                  {impact != null && (
+                    <span className={impact >= 0 ? 'pred-impact-pos' : 'pred-impact-neg'}>
+                      {impact >= 0 ? '+' : ''}{impact.toFixed(1)} pts
+                    </span>
+                  )}
                   <span>{s.max}{s.unit}</span>
                 </div>
               </div>
@@ -215,7 +222,7 @@ export default function PredictionPanel() {
             <div className="pred-score-ring">
               <svg viewBox="0 0 120 120" className="pred-ring-svg">
                 <circle cx="60" cy="60" r="50" className="ring-track" />
-                <circle
+                <circleCOHORT DATABASE
                   cx="60" cy="60" r="50"
                   className="ring-fill"
                   style={{ stroke: gradeColor }}

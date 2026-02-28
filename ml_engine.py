@@ -252,7 +252,7 @@ class MLEngine:
 
         return my_score, "\n".join(lines)
 
-    def predict_deep(self, values: dict) -> tuple[float, str]:
+    def predict_deep(self, values: dict) -> tuple[float, str, list[dict]]:
         """Random Forest + SHAP → feature attribution breakdown."""
         X     = self._X(values)
         score = float(np.clip(self.rf.predict(X)[0], 0, 100))
@@ -300,7 +300,19 @@ class MLEngine:
                 f"~{abs(worst[1]):.1f} pts. Address this first."
             )
 
-        return score, "\n".join(lines)
+        # Structured SHAP data — sorted by absolute impact descending
+        shap_structured = [
+            {
+                "feature_key":   feat,
+                "metric_name":   FEATURE_LABELS[feat],
+                "unit":          FEATURE_UNITS[feat],
+                "value":         values[feat],
+                "impact_score":  round(float(sv), 2),
+            }
+            for feat, sv in sorted(shap_map.items(), key=lambda x: -abs(x[1]))
+        ]
+
+        return score, "\n".join(lines), shap_structured
 
 
     async def load_cohort_from_db(self) -> None:

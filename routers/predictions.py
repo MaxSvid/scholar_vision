@@ -37,11 +37,20 @@ class PredictionRequest(BaseModel):
     analysis_mode: AnalysisMode = AnalysisMode.strict
 
 
+class ShapFeature(BaseModel):
+    feature_key:  str
+    metric_name:  str
+    unit:         str
+    value:        float
+    impact_score: float
+
+
 class PredictionResponse(BaseModel):
     predicted_score: float
     predicted_grade: str
     analysis_mode:   str
     text_advice:     str
+    shap_values:     list[ShapFeature] | None = None
 
 
 # ─── Endpoint ─────────────────────────────────────────────────────────────────
@@ -59,13 +68,14 @@ async def analyze(req: PredictionRequest):
         "breakFreq":     req.breakFreq,
     }
 
+    shap_data = None
     try:
         if req.analysis_mode == AnalysisMode.strict:
             score, advice = engine.predict_strict(values)
         elif req.analysis_mode == AnalysisMode.peer:
             score, advice = engine.predict_peer(values)
         else:
-            score, advice = engine.predict_deep(values)
+            score, advice, shap_data = engine.predict_deep(values)
     except Exception as exc:
         raise HTTPException(500, detail=f"Inference error: {exc}") from exc
 
@@ -75,4 +85,5 @@ async def analyze(req: PredictionRequest):
         predicted_grade=grade,
         analysis_mode=req.analysis_mode.value,
         text_advice=advice,
+        shap_values=shap_data,
     )
