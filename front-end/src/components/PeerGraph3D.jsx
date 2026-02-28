@@ -13,6 +13,7 @@ const PEERS = [
     avgAttentionMin: 55, avgBreaks: 1.8, focusQualityPct: 82,
     apps: { obsidian: 1.1, vscode: 4.5, anki: 1.2, notion: 0.9, tiktok: 0.3, discord: 0.5, youtube: 1.0 },
     sites: { scholar: 'FREQUENT', arxiv: 'FREQUENT', reddit: 'RARE', ytStudy: 'OCCASIONAL' },
+    health: { avgSteps: 9200, avgHR: 68, hrv: 52, activeCal: 480, mindfulMin: 35 },
   },
   {
     id: 2, alias: 'Scholar #2',
@@ -22,6 +23,7 @@ const PEERS = [
     avgAttentionMin: 42, avgBreaks: 2.3, focusQualityPct: 65,
     apps: { obsidian: 0, vscode: 0, anki: 2.1, notion: 1.5, tiktok: 0.8, discord: 1.2, youtube: 1.5 },
     sites: { scholar: 'FREQUENT', arxiv: 'RARE', reddit: 'OCCASIONAL', ytStudy: 'FREQUENT' },
+    health: { avgSteps: 7500, avgHR: 72, hrv: 41, activeCal: 360, mindfulMin: 15 },
   },
   {
     id: 3, alias: 'Scholar #3',
@@ -31,6 +33,7 @@ const PEERS = [
     avgAttentionMin: 24, avgBreaks: 4.1, focusQualityPct: 28,
     apps: { obsidian: 0, vscode: 0, anki: 0.3, notion: 0.5, tiktok: 3.5, discord: 2.8, youtube: 2.0 },
     sites: { scholar: 'RARE', arxiv: 'NEVER', reddit: 'FREQUENT', ytStudy: 'RARE' },
+    health: { avgSteps: 4200, avgHR: 82, hrv: 28, activeCal: 210, mindfulMin: 0 },
   },
   {
     id: 4, alias: 'Scholar #4',
@@ -40,6 +43,7 @@ const PEERS = [
     avgAttentionMin: 68, avgBreaks: 1.2, focusQualityPct: 92,
     apps: { obsidian: 1.8, vscode: 2.0, anki: 2.5, notion: 1.2, tiktok: 0.1, discord: 0.3, youtube: 0.5 },
     sites: { scholar: 'FREQUENT', arxiv: 'FREQUENT', reddit: 'NEVER', ytStudy: 'FREQUENT' },
+    health: { avgSteps: 11000, avgHR: 62, hrv: 68, activeCal: 590, mindfulMin: 60 },
   },
   {
     id: 5, alias: 'Scholar #5',
@@ -49,6 +53,7 @@ const PEERS = [
     avgAttentionMin: 38, avgBreaks: 2.8, focusQualityPct: 55,
     apps: { obsidian: 0, vscode: 0, anki: 0.8, notion: 2.0, tiktok: 1.5, discord: 1.8, youtube: 2.2 },
     sites: { scholar: 'OCCASIONAL', arxiv: 'NEVER', reddit: 'FREQUENT', ytStudy: 'OCCASIONAL' },
+    health: { avgSteps: 6100, avgHR: 76, hrv: 35, activeCal: 300, mindfulMin: 10 },
   },
   {
     id: 6, alias: 'Scholar #6',
@@ -58,6 +63,7 @@ const PEERS = [
     avgAttentionMin: 47, avgBreaks: 2.1, focusQualityPct: 70,
     apps: { obsidian: 0.4, vscode: 3.8, anki: 0.9, notion: 1.1, tiktok: 0.6, discord: 0.9, youtube: 1.3 },
     sites: { scholar: 'FREQUENT', arxiv: 'OCCASIONAL', reddit: 'RARE', ytStudy: 'RARE' },
+    health: { avgSteps: 8300, avgHR: 70, hrv: 45, activeCal: 420, mindfulMin: 20 },
   },
   {
     id: 7, alias: 'Scholar #7',
@@ -67,6 +73,7 @@ const PEERS = [
     avgAttentionMin: 74, avgBreaks: 1.0, focusQualityPct: 95,
     apps: { obsidian: 2.2, vscode: 1.5, anki: 3.0, notion: 0.8, tiktok: 0.0, discord: 0.2, youtube: 0.4 },
     sites: { scholar: 'FREQUENT', arxiv: 'FREQUENT', reddit: 'NEVER', ytStudy: 'FREQUENT' },
+    health: { avgSteps: 10500, avgHR: 60, hrv: 72, activeCal: 550, mindfulMin: 70 },
   },
   {
     id: 8, alias: 'Scholar #8',
@@ -76,6 +83,7 @@ const PEERS = [
     avgAttentionMin: 60, avgBreaks: 1.5, focusQualityPct: 74,
     apps: { obsidian: 2.5, vscode: 0, anki: 1.8, notion: 2.2, tiktok: 0.4, discord: 0.6, youtube: 0.8 },
     sites: { scholar: 'FREQUENT', arxiv: 'NEVER', reddit: 'OCCASIONAL', ytStudy: 'OCCASIONAL' },
+    health: { avgSteps: 7800, avgHR: 74, hrv: 38, activeCal: 380, mindfulMin: 25 },
   },
   {
     id: 9, alias: 'Scholar #9',
@@ -85,6 +93,7 @@ const PEERS = [
     avgAttentionMin: 35, avgBreaks: 3.0, focusQualityPct: 50,
     apps: { obsidian: 0, vscode: 0, anki: 0.2, notion: 1.8, tiktok: 2.0, discord: 1.5, youtube: 2.5 },
     sites: { scholar: 'RARE', arxiv: 'NEVER', reddit: 'OCCASIONAL', ytStudy: 'FREQUENT' },
+    health: { avgSteps: 8800, avgHR: 66, hrv: 48, activeCal: 440, mindfulMin: 30 },
   },
   {
     id: 10, alias: 'Scholar #10',
@@ -94,6 +103,7 @@ const PEERS = [
     avgAttentionMin: 65, avgBreaks: 1.4, focusQualityPct: 88,
     apps: { obsidian: 1.5, vscode: 0, anki: 4.2, notion: 1.0, tiktok: 0.2, discord: 0.4, youtube: 0.6 },
     sites: { scholar: 'FREQUENT', arxiv: 'OCCASIONAL', reddit: 'RARE', ytStudy: 'OCCASIONAL' },
+    health: { avgSteps: 9500, avgHR: 65, hrv: 58, activeCal: 500, mindfulMin: 45 },
   },
   {
     id: 11, alias: 'Scholar #11',
@@ -103,6 +113,7 @@ const PEERS = [
     avgAttentionMin: 30, avgBreaks: 3.5, focusQualityPct: 40,
     apps: { obsidian: 0.8, vscode: 0, anki: 0.4, notion: 1.2, tiktok: 1.8, discord: 2.0, youtube: 3.0 },
     sites: { scholar: 'OCCASIONAL', arxiv: 'NEVER', reddit: 'FREQUENT', ytStudy: 'OCCASIONAL' },
+    health: { avgSteps: 5500, avgHR: 78, hrv: 31, activeCal: 260, mindfulMin: 5 },
   },
   {
     id: 12, alias: 'Scholar #12',
@@ -112,6 +123,7 @@ const PEERS = [
     avgAttentionMin: 62, avgBreaks: 1.6, focusQualityPct: 85,
     apps: { obsidian: 1.0, vscode: 5.0, anki: 1.5, notion: 1.4, tiktok: 0.2, discord: 0.7, youtube: 1.2 },
     sites: { scholar: 'FREQUENT', arxiv: 'FREQUENT', reddit: 'RARE', ytStudy: 'FREQUENT' },
+    health: { avgSteps: 9800, avgHR: 67, hrv: 55, activeCal: 510, mindfulMin: 40 },
   },
 ]
 
@@ -143,6 +155,11 @@ function leafValue(id, peer) {
     case 'arxiv':       return FREQ[peer.sites.arxiv]
     case 'reddit':      return FREQ[peer.sites.reddit]
     case 'yt-study':    return FREQ[peer.sites.ytStudy]
+    case 'h-steps':     return peer.health.avgSteps / 3000
+    case 'h-hr':        return (100 - peer.health.avgHR) / 20
+    case 'h-hrv':       return peer.health.hrv / 20
+    case 'h-active':    return peer.health.activeCal / 150
+    case 'h-mindful':   return peer.health.mindfulMin / 20
     default:            return 1.0
   }
 }
@@ -155,6 +172,7 @@ function categoryRadius(id, peer) {
     case 'apps':      agg = Object.values(peer.apps).reduce((s, v) => s + v, 0); break
     case 'major':     agg = peer.weeklyHours / 7 + peer.yearNum * 0.5; break
     case 'websites':  agg = Object.values(peer.sites).reduce((s, f) => s + (FREQ[f] || 0), 0); break
+    case 'health':    agg = (peer.health.avgSteps / 3000) + (peer.health.hrv / 20) + (peer.health.mindfulMin / 20); break
     default:          agg = 5
   }
   return Math.min(0.42, Math.max(0.16, agg * 0.020))
@@ -177,6 +195,7 @@ const NODE_DEFS = [
   { id: 'apps',        label: 'APP USAGE',      group: 'category', color: '#d4af37' },
   { id: 'major',       label: 'MAJOR / FIELD',  group: 'category', color: '#d4af37' },
   { id: 'websites',    label: 'WEBSITES',       group: 'category', color: '#d4af37' },
+  { id: 'health',      label: 'HEALTH',         group: 'category', color: '#e8729a' },
   { id: 'avg-time',    label: '', group: 'leaf-prod', color: '#44cc66', parent: 'study' },
   { id: 'session-dur', label: '', group: 'leaf-prod', color: '#44cc66', parent: 'study' },
   { id: 'sleep',       label: '', group: 'leaf-prod', color: '#44cc66', parent: 'study' },
@@ -198,12 +217,23 @@ const NODE_DEFS = [
   { id: 'arxiv',       label: '', group: 'leaf-prod', color: '#44cc66', parent: 'websites' },
   { id: 'reddit',      label: '', group: 'leaf-dist', color: '#cc3333', parent: 'websites' },
   { id: 'yt-study',    label: '', group: 'leaf-neut', color: '#ccaa33', parent: 'websites' },
+  { id: 'h-steps',    label: '', group: 'leaf-health', color: '#ff9dbf', parent: 'health' },
+  { id: 'h-hr',       label: '', group: 'leaf-health', color: '#ff9dbf', parent: 'health' },
+  { id: 'h-hrv',      label: '', group: 'leaf-health', color: '#ff9dbf', parent: 'health' },
+  { id: 'h-active',   label: '', group: 'leaf-health', color: '#ff9dbf', parent: 'health' },
+  { id: 'h-mindful',  label: '', group: 'leaf-health', color: '#ff9dbf', parent: 'health' },
 ]
 
 const EDGE_DEFS = [
   { from: 'outcome', to: 'study' }, { from: 'outcome', to: 'attention' },
   { from: 'outcome', to: 'apps' },  { from: 'outcome', to: 'major' },
   { from: 'outcome', to: 'websites' },
+  { from: 'outcome', to: 'health' },
+  { from: 'health', to: 'h-steps' },
+  { from: 'health', to: 'h-hr' },
+  { from: 'health', to: 'h-hrv' },
+  { from: 'health', to: 'h-active' },
+  { from: 'health', to: 'h-mindful' },
   { from: 'study', to: 'avg-time' }, { from: 'study', to: 'session-dur' }, { from: 'study', to: 'sleep' },
   { from: 'attention', to: 'att-avg' }, { from: 'attention', to: 'att-breaks' }, { from: 'attention', to: 'att-qual' },
   { from: 'apps', to: 'obsidian' }, { from: 'apps', to: 'vscode' }, { from: 'apps', to: 'anki' },
@@ -220,6 +250,7 @@ const GROUP_NODES = {
   apps:      ['outcome', 'apps', 'obsidian', 'vscode', 'anki', 'ai-agents', 'notion', 'tiktok', 'discord', 'youtube-a'],
   major:     ['outcome', 'major', 'field', 'year', 'target'],
   websites:  ['outcome', 'websites', 'scholar', 'arxiv', 'reddit', 'yt-study'],
+  health:    ['outcome', 'health', 'h-steps', 'h-hr', 'h-hrv', 'h-active', 'h-mindful'],
 }
 
 const GROUP_BUTTONS = [
@@ -229,6 +260,7 @@ const GROUP_BUTTONS = [
   { id: 'apps',      label: 'APP USAGE' },
   { id: 'major',     label: 'ACADEMIC' },
   { id: 'websites',  label: 'WEBSITES' },
+  { id: 'health',    label: 'HEALTH' },
 ]
 
 const BASE_EMISSIVE = { outcome: 0.55, category: 0.22, default: 0.22 }
@@ -272,6 +304,11 @@ function buildPeerNodes(peer) {
     if (n.id === 'arxiv')       node.label = `ArXiv: ${peer.sites.arxiv}`
     if (n.id === 'reddit')      node.label = `Reddit: ${peer.sites.reddit}`
     if (n.id === 'yt-study')    node.label = `YouTube Study: ${peer.sites.ytStudy}`
+    if (n.id === 'h-steps')     node.label = `STEPS: ${peer.health.avgSteps.toLocaleString()}/DAY`
+    if (n.id === 'h-hr')        node.label = `HEART RATE: ${peer.health.avgHR} BPM`
+    if (n.id === 'h-hrv')       node.label = `HRV: ${peer.health.hrv} MS`
+    if (n.id === 'h-active')    node.label = `ACTIVE CAL: ${peer.health.activeCal} KCAL`
+    if (n.id === 'h-mindful')   node.label = `MINDFULNESS: ${peer.health.mindfulMin} MIN/WK`
     return node
   })
 }
@@ -555,6 +592,7 @@ function PeerDetail({ peer, onBack }) {
         <span><span className="peer-dot" style={{ background: '#cc3333' }} />DISTRACTING</span>
         <span><span className="peer-dot" style={{ background: '#ccaa33' }} />NEUTRAL</span>
         <span><span className="peer-dot" style={{ background: '#7f7fff' }} />ACADEMIC</span>
+        <span><span className="peer-dot" style={{ background: '#ff9dbf' }} />HEALTH</span>
       </div>
 
       <div className="peer-canvas" ref={mountRef}>

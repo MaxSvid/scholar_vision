@@ -307,6 +307,42 @@ CREATE TABLE parsed_text_snippets (
     extracted_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ============================================================
+--  SECTION 10 — APPLE HEALTH IMPORT
+-- ============================================================
+
+-- 10.1  One record per JSON payload received
+CREATE TABLE health_imports (
+    import_id      UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id        UUID        REFERENCES users(user_id) ON DELETE SET NULL,
+    session_id     VARCHAR(64),
+    source_user_id VARCHAR(100),              -- user_id field from the JSON
+    sync_timestamp TIMESTAMP,
+    client_version VARCHAR(20),
+    metric_count   INT         DEFAULT 0,
+    imported_at    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 10.2  Individual health metrics extracted from each import
+CREATE TABLE health_metrics (
+    metric_id        SERIAL      PRIMARY KEY,
+    import_id        UUID        NOT NULL REFERENCES health_imports(import_id) ON DELETE CASCADE,
+    user_id          UUID        REFERENCES users(user_id) ON DELETE SET NULL,
+    type             VARCHAR(100) NOT NULL,   -- step_count, heart_rate, sleep_analysis, …
+    data_class       VARCHAR(50),             -- 'quantity' | 'category'
+    value_num        FLOAT,                   -- numeric value (quantity metrics)
+    value_cat        VARCHAR(100),            -- categorical value (e.g. 'REM', 'AWAKE')
+    unit             VARCHAR(50),             -- count, count/min, kcal, …
+    start_time       TIMESTAMP   NOT NULL,
+    end_time         TIMESTAMP,
+    source_device    VARCHAR(100),            -- e.g. 'Watch6,1', 'iPhone14,2'
+    was_user_entered BOOLEAN     DEFAULT FALSE,
+    recorded_at      TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_health_metrics_import ON health_metrics(import_id);
+CREATE INDEX idx_health_metrics_type   ON health_metrics(type);
+
 -- 8.3  Improvement recommendations  (generated from XAI output)
 CREATE TABLE improvement_recommendations (
     rec_id          SERIAL    PRIMARY KEY,

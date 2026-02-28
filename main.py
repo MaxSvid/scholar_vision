@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from routers.files import router as files_router
+from routers.health import router as health_router
 
 
 @asynccontextmanager
@@ -28,6 +29,7 @@ app.add_middleware(
 )
 
 app.include_router(files_router)
+app.include_router(health_router)
 
 
 class StudentQuery(BaseModel):

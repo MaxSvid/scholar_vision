@@ -5,12 +5,19 @@ import './DataGraph3D.css'
 
 // ─── STATIC GRAPH STRUCTURE ─────────────────────────────────────────────────
 const NODE_DEFS = [
-  { id: 'outcome',     label: 'PREDICTED OUTCOME', group: 'outcome',   radius: 0.48, color: '#c8ff00' },
-  { id: 'study',       label: 'STUDY TIME',         group: 'category',  radius: 0.30, color: '#d4af37' },
-  { id: 'attention',   label: 'ATTENTION SPAN',      group: 'category',  radius: 0.30, color: '#d4af37' },
-  { id: 'apps',        label: 'APP USAGE',           group: 'category',  radius: 0.30, color: '#d4af37' },
-  { id: 'major',       label: 'MAJOR / FIELD',       group: 'category',  radius: 0.30, color: '#d4af37' },
-  { id: 'websites',    label: 'WEBSITES',            group: 'category',  radius: 0.30, color: '#d4af37' },
+  { id: 'outcome',     label: 'PREDICTED OUTCOME', group: 'outcome',     radius: 0.48, color: '#c8ff00' },
+  { id: 'study',       label: 'STUDY TIME',         group: 'category',    radius: 0.30, color: '#d4af37' },
+  { id: 'attention',   label: 'ATTENTION SPAN',      group: 'category',    radius: 0.30, color: '#d4af37' },
+  { id: 'apps',        label: 'APP USAGE',           group: 'category',    radius: 0.30, color: '#d4af37' },
+  { id: 'major',       label: 'MAJOR / FIELD',       group: 'category',    radius: 0.30, color: '#d4af37' },
+  { id: 'websites',    label: 'WEBSITES',            group: 'category',    radius: 0.30, color: '#d4af37' },
+  { id: 'health',      label: 'HEALTH',              group: 'category',    radius: 0.30, color: '#e8729a' },
+  { id: 'h-sleep',    label: 'SLEEP: —',            group: 'leaf-health', radius: 0.16, color: '#ff9dbf', parent: 'health' },
+  { id: 'h-steps',    label: 'STEPS: —',            group: 'leaf-health', radius: 0.16, color: '#ff9dbf', parent: 'health' },
+  { id: 'h-hr',       label: 'HEART RATE: —',       group: 'leaf-health', radius: 0.14, color: '#ff9dbf', parent: 'health' },
+  { id: 'h-hrv',      label: 'HRV: —',              group: 'leaf-health', radius: 0.13, color: '#ff9dbf', parent: 'health' },
+  { id: 'h-active',   label: 'ACTIVE CAL: —',       group: 'leaf-health', radius: 0.15, color: '#ff9dbf', parent: 'health' },
+  { id: 'h-mindful',  label: 'MINDFULNESS: —',      group: 'leaf-health', radius: 0.13, color: '#ff9dbf', parent: 'health' },
   { id: 'avg-time',    label: 'AVG TIME: —',         group: 'leaf-prod', radius: 0.16, color: '#44cc66', parent: 'study' },
   { id: 'session-dur', label: 'SESSION: —',          group: 'leaf-prod', radius: 0.16, color: '#44cc66', parent: 'study' },
   { id: 'sleep',       label: 'SLEEP: 7h/NIGHT',     group: 'leaf-prod', radius: 0.14, color: '#44cc66', parent: 'study' },
@@ -40,6 +47,13 @@ const EDGE_DEFS = [
   { from: 'outcome', to: 'apps' },
   { from: 'outcome', to: 'major' },
   { from: 'outcome', to: 'websites' },
+  { from: 'outcome', to: 'health' },
+  { from: 'health', to: 'h-sleep' },
+  { from: 'health', to: 'h-steps' },
+  { from: 'health', to: 'h-hr' },
+  { from: 'health', to: 'h-hrv' },
+  { from: 'health', to: 'h-active' },
+  { from: 'health', to: 'h-mindful' },
   { from: 'study', to: 'avg-time' },
   { from: 'study', to: 'session-dur' },
   { from: 'study', to: 'sleep' },
@@ -70,6 +84,7 @@ const GROUP_NODES = {
   apps:      ['outcome', 'apps', 'obsidian', 'vscode', 'anki', 'ai-agents', 'notion', 'tiktok', 'discord', 'youtube-a'],
   major:     ['outcome', 'major', 'field', 'year', 'target'],
   websites:  ['outcome', 'websites', 'scholar', 'arxiv', 'reddit', 'yt-study'],
+  health:    ['outcome', 'health', 'h-sleep', 'h-steps', 'h-hr', 'h-hrv', 'h-active', 'h-mindful'],
 }
 
 const GROUP_BUTTONS = [
@@ -79,6 +94,7 @@ const GROUP_BUTTONS = [
   { id: 'apps',      label: 'APP USAGE' },
   { id: 'major',     label: 'ACADEMIC' },
   { id: 'websites',  label: 'WEBSITES' },
+  { id: 'health',    label: 'HEALTH' },
 ]
 
 const APP_NODE_MAP = {
@@ -105,7 +121,7 @@ function fibSphere(n, r) {
   return pts
 }
 
-function buildNodes(user, studySessions, appLogs, attSessions) {
+function buildNodes(user, studySessions, appLogs, attSessions, healthMetrics) {
   const totalStudyHours = studySessions.reduce((s, x) => s + x.hours, 0)
   const studyDays       = new Set(studySessions.map(s => s.date)).size || 1
   const avgDaily        = (totalStudyHours / studyDays).toFixed(1)
@@ -128,6 +144,8 @@ function buildNodes(user, studySessions, appLogs, attSessions) {
     return acc
   }, {})
 
+  const hm = Object.fromEntries((healthMetrics || []).map(r => [r.type, r]))
+
   return NODE_DEFS.map(n => {
     const node = { ...n }
     if (n.id === 'field'       && user?.fieldOfStudy) node.label = user.fieldOfStudy.toUpperCase()
@@ -140,12 +158,37 @@ function buildNodes(user, studySessions, appLogs, attSessions) {
     if (n.id === 'att-qual')    node.label = highQPct  != null ? `FOCUS QUALITY: ${highQPct}% HIGH` : 'FOCUS QUALITY: —'
     const appName = Object.entries(APP_NODE_MAP).find(([, id]) => id === n.id)?.[0]
     if (appName && appTotals[appName] != null) node.label = `${appName}: ${appTotals[appName].toFixed(1)}h`
+    // Health leaves
+    if (n.id === 'h-sleep') {
+      const r = hm['sleep_analysis']
+      node.label = r ? `SLEEP: ${parseFloat(r.avg_value).toFixed(1)}h` : 'SLEEP: —'
+    }
+    if (n.id === 'h-steps') {
+      const r = hm['step_count']
+      node.label = r ? `STEPS: ${Math.round(parseFloat(r.avg_value)).toLocaleString()}` : 'STEPS: —'
+    }
+    if (n.id === 'h-hr') {
+      const r = hm['heart_rate'] || hm['resting_heart_rate']
+      node.label = r ? `HEART RATE: ${Math.round(parseFloat(r.avg_value))} BPM` : 'HEART RATE: —'
+    }
+    if (n.id === 'h-hrv') {
+      const r = hm['heart_rate_variability_sdnn']
+      node.label = r ? `HRV: ${Math.round(parseFloat(r.avg_value))} MS` : 'HRV: —'
+    }
+    if (n.id === 'h-active') {
+      const r = hm['active_energy_burned']
+      node.label = r ? `ACTIVE CAL: ${Math.round(parseFloat(r.avg_value))} KCAL` : 'ACTIVE CAL: —'
+    }
+    if (n.id === 'h-mindful') {
+      const r = hm['mindful_session']
+      node.label = r ? `MINDFULNESS: ${r.count} SESSIONS` : 'MINDFULNESS: —'
+    }
     return node
   })
 }
 
 // ─── COMPONENT ───────────────────────────────────────────────────────────────
-export default function DataGraph3D({ user, studySessions = [], appLogs = [], attSessions = [] }) {
+export default function DataGraph3D({ user, studySessions = [], appLogs = [], attSessions = [], healthMetrics = [] }) {
   const mountRef        = useRef(null)
   const meshesRef       = useRef([])
   const selectedGrpRef  = useRef(null)
@@ -161,7 +204,7 @@ export default function DataGraph3D({ user, studySessions = [], appLogs = [], at
     const mount = mountRef.current
     if (!mount) return
 
-    const nodes   = buildNodes(user, studySessions, appLogs, attSessions)
+    const nodes   = buildNodes(user, studySessions, appLogs, attSessions, healthMetrics)
     const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]))
 
     // ── Position ────────────────────────────────────────────────
@@ -341,7 +384,7 @@ export default function DataGraph3D({ user, studySessions = [], appLogs = [], at
       ro.disconnect(); controls.dispose(); renderer.dispose()
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement)
     }
-  }, [user, studySessions, appLogs, attSessions])
+  }, [user, studySessions, appLogs, attSessions, healthMetrics])
 
   return (
     <div className="subpanel graph3d-panel">
@@ -371,6 +414,7 @@ export default function DataGraph3D({ user, studySessions = [], appLogs = [], at
         <span><span className="g3d-dot" style={{ background: '#cc3333' }} />DISTRACTING</span>
         <span><span className="g3d-dot" style={{ background: '#ccaa33' }} />NEUTRAL</span>
         <span><span className="g3d-dot" style={{ background: '#7f7fff' }} />ACADEMIC</span>
+        <span><span className="g3d-dot" style={{ background: '#ff9dbf' }} />HEALTH</span>
       </div>
 
       <div className="graph3d-canvas" ref={mountRef}>

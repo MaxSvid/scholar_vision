@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import StudyTracker from './StudyTracker'
 import AppUsage from './AppUsage'
 import AttentionSpan from './AttentionSpan'
 import PredictionPanel from './PredictionPanel'
 import FileImport from './FileImport'
+import HealthImport from './HealthImport'
 import DataGraph3D from './DataGraph3D'
 import PeerGraph3D from './PeerGraph3D'
 import './Dashboard.css'
@@ -17,6 +18,7 @@ const TABS = [
   { id: 'graph3d',     label: '3D Graph',    icon: '◈' },
   { id: 'peers',       label: 'Peers',       icon: '❂' },
   { id: 'files',       label: 'Files',       icon: '▦' },
+  { id: 'health',      label: 'Health',      icon: '♡' },
 ]
 
 const INIT_STUDY_SESSIONS = [
@@ -42,6 +44,16 @@ export default function Dashboard({ user, onLogout }) {
   const [studySessions, setStudySessions] = useState(INIT_STUDY_SESSIONS)
   const [appLogs,       setAppLogs]       = useState(INIT_APP_LOGS)
   const [attSessions,   setAttSessions]   = useState(INIT_ATT_SESSIONS)
+  const [healthMetrics, setHealthMetrics] = useState([])
+
+  useEffect(() => {
+    let id = sessionStorage.getItem('sv_session_id')
+    if (!id) return
+    fetch(`/api/health/metrics/summary?session_id=${id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d?.summary && setHealthMetrics(d.summary))
+      .catch(() => {})
+  }, [])
 
   const displayName = user?.firstName
     ? `${user.firstName} ${user.lastName}`
@@ -94,10 +106,12 @@ export default function Dashboard({ user, onLogout }) {
               studySessions={studySessions}
               appLogs={appLogs}
               attSessions={attSessions}
+              healthMetrics={healthMetrics}
             />
           )}
           {tab === 'peers'      && <PeerGraph3D />}
           {tab === 'files'      && <FileImport />}
+          {tab === 'health'     && <HealthImport />}
         </main>
       </div>
     </div>
