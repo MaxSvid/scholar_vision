@@ -86,8 +86,8 @@ export default function AppUsage({ logs, setLogs }) {
                   className="sp-hbar-fill"
                   style={{
                     width: `${(a.hours / maxApp) * 100}%`,
-                    background: catColor(a.category),
-                    boxShadow: `0 0 6px ${catColor(a.category)}`,
+                    background: a.category === 'Distracting' ? 'transparent' : catColor(a.category),
+                    boxShadow: a.category === 'Distracting' ? 'inset 0 0 0 1px var(--border-hi)' : undefined,
                   }}
                 />
               </div>
