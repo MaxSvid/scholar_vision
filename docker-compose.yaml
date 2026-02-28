@@ -1,24 +1,55 @@
 version: '3.8'
 
 services:
+
+  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  postgres:
+    container_name: scholar_postgres
+    image: postgres:16
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data   # persistent data volume
+      - ./init_DB:/docker-entrypoint-initdb.d    # runs *.sql on first start
+    ports:
+      - "${POSTGRES_PORT_HOST}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── pgAdmin 4 ─────────────────────────────────────────────────────────────
   pgadmin:
     container_name: scholar_pgadmin
     image: dpage/pgadmin4
     env_file:
       - .env
     volumes:
-      - ./pgadmin:/var/lib/pgadmin
+      - pgadmin_data:/var/lib/pgadmin
     ports:
       - "${PGADMIN_PORT_HOST}:80"
-    restart: unless-stopped
-
-  app:
-    build: .
-    restart: always
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
+
+  # ── FastAPI application ───────────────────────────────────────────────────
+  app:
+    build: .
+    container_name: scholar_app
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     ports:
       - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
+volumes:
+  postgres_data:
+  pgadmin_data:
