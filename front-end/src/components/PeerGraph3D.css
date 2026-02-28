@@ -2,7 +2,90 @@
   max-width: 100%;
 }
 
-/* ── Peer selector row ── */
+/* ── Grid of mini graphs ──────────────────────────────────────── */
+.peer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.peer-mini-card {
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--bg-2);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.peer-mini-card:hover {
+  border-color: var(--fg);
+  box-shadow: 0 0 0 1px var(--fg);
+}
+
+.peer-mini-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.65rem 0.8rem 0.55rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.peer-mini-alias {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--fg);
+}
+
+.peer-mini-field {
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  margin-top: 0.15rem;
+}
+
+.peer-mini-grade {
+  font-size: 1.1rem;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  font-weight: normal;
+}
+
+.peer-mini-canvas {
+  height: 320px;
+  background: var(--bg-2);
+  position: relative;
+}
+
+.peer-mini-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ── Detail header ──────────────────────────────────────────────  */
+.peer-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.peer-back-btn {
+  font-size: 0.75rem;
+  padding: 0.4rem 0.9rem;
+  flex-shrink: 0;
+}
+
+.peer-detail-title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+/* ── Peer selector (kept for legacy, hidden in grid mode) ─────── */
 .peer-selector {
   display: flex;
   gap: 0.65rem;
@@ -25,15 +108,8 @@
   transition: border-color 0.15s, background 0.15s;
 }
 
-.peer-card:hover {
-  border-color: var(--fg-dim);
-  background: var(--bg-3);
-}
-
-.peer-card.active {
-  border-color: var(--fg);
-  background: var(--bg-3);
-}
+.peer-card:hover  { border-color: var(--fg-dim); background: var(--bg-3); }
+.peer-card.active { border-color: var(--fg); background: var(--bg-3); }
 
 .peer-alias {
   font-size: 0.72rem;
@@ -69,7 +145,7 @@
   color: var(--fg);
 }
 
-/* ── Group selector ── */
+/* ── Group selector ─────────────────────────────────────────── */
 .peer-groups {
   display: flex;
   gap: 0.5rem;
@@ -90,18 +166,10 @@
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-.peer-group-btn:hover {
-  color: var(--fg);
-  border-color: var(--fg);
-}
+.peer-group-btn:hover  { color: var(--fg); border-color: var(--fg); }
+.peer-group-btn.active { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 
-.peer-group-btn.active {
-  background: var(--fg);
-  color: var(--bg);
-  border-color: var(--fg);
-}
-
-/* ── Legend ── */
+/* ── Legend ──────────────────────────────────────────────────── */
 .peer-legend {
   display: flex;
   align-items: center;
@@ -123,7 +191,7 @@
   flex-shrink: 0;
 }
 
-/* ── Canvas ── */
+/* ── Detail canvas ───────────────────────────────────────────── */
 .peer-canvas {
   position: relative;
   width: 100%;
@@ -135,27 +203,12 @@
   cursor: grab;
 }
 
-.peer-canvas:active {
-  cursor: grabbing;
-}
+.peer-canvas:active { cursor: grabbing; }
 
 .peer-canvas canvas {
   display: block;
   width: 100% !important;
   height: 100% !important;
-}
-
-/* ── Responsive ────────────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .peer-canvas { height: 440px; }
-}
-@media (max-width: 600px) {
-  .peer-canvas { height: 320px; }
-  .peer-card { min-width: 100px; padding: 0.5rem 0.65rem; }
-  .peer-alias { font-size: 0.65rem; }
-  .peer-groups { gap: 0.35rem; }
-  .peer-group-btn { padding: 0.25rem 0.55rem; font-size: 0.65rem; }
-  .peer-legend { gap: 0.8rem; font-size: 0.62rem; }
 }
 
 .peer-tooltip {
@@ -170,4 +223,26 @@
   pointer-events: none;
   z-index: 20;
   white-space: nowrap;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .peer-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+  .peer-mini-canvas { height: 280px; }
+  .peer-canvas { height: 440px; }
+}
+
+@media (max-width: 600px) {
+  .peer-grid { grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+  .peer-mini-canvas { height: 200px; }
+  .peer-mini-alias { font-size: 0.68rem; }
+  .peer-canvas { height: 320px; }
+  .peer-groups { gap: 0.35rem; }
+  .peer-group-btn { padding: 0.25rem 0.55rem; font-size: 0.65rem; }
+  .peer-legend { gap: 0.8rem; font-size: 0.62rem; }
+  .peer-detail-header { gap: 0.6rem; }
+}
+
+@media (max-width: 380px) {
+  .peer-grid { grid-template-columns: 1fr; }
 }

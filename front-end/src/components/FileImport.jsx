@@ -56,38 +56,77 @@ export default function FileImport() {
   }, [])
 
   async function fetchFiles() {
+    console.log('[FileImport] Loading existing files for session:', sessionId)
     try {
       const res = await fetch(`/api/files?session_id=${sessionId}`)
-      if (!res.ok) return
+      if (!res.ok) {
+        console.warn('[FileImport] Failed to load file list — HTTP', res.status)
+        return
+      }
       const data = await res.json()
+      console.log('[FileImport] Loaded', data.files?.length ?? 0, 'file(s) from server')
       setFiles(data.files || [])
-    } catch {
-      // Backend not running — stay with empty list
+    } catch (e) {
+      console.warn('[FileImport] Backend unreachable — starting with empty list:', e.message)
     }
   }
 
   async function uploadFile(f, category = 'Other', notes = '') {
+    const sizeMB = (f.size / 1024 / 1024).toFixed(2)
+    console.log(`[FileImport] Uploading "${f.name}" (${sizeMB} MB, type: ${f.type || 'unknown'})`)
+
     const form = new FormData()
     form.append('file',       f)
     form.append('session_id', sessionId)
     form.append('category',   category)
     form.append('notes',      notes)
 
-    const res = await fetch('/api/files/upload', { method: 'POST', body: form })
+    let res
+    try {
+      res = await fetch('/api/files/upload', { method: 'POST', body: form })
+    } catch (e) {
+      console.error(`[FileImport] Network error uploading "${f.name}":`, e.message)
+      throw new Error(`Network error — is the server running?`)
+    }
+
+    if (res.status === 413) {
+      console.error(`[FileImport] "${f.name}" rejected — file exceeds 20 MB limit`)
+      throw new Error(`"${f.name}" exceeds the 20 MB limit`)
+    }
+    if (res.status === 415) {
+      const ext = f.name.split('.').pop()
+      console.error(`[FileImport] "${f.name}" rejected — unsupported file type: .${ext}`)
+      throw new Error(`File type ".${ext}" is not supported`)
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
-      throw new Error(err.detail || `Upload failed (${res.status})`)
+      const detail = err.detail || `HTTP ${res.status}`
+      console.error(`[FileImport] Upload failed for "${f.name}":`, detail)
+      throw new Error(detail)
     }
-    return res.json()
+
+    const data = await res.json()
+    const status = data.parse_error
+      ? `parsed with error — ${data.parse_error}`
+      : `parsed OK (${data.grades_count} grade(s), ${data.snippets_count} snippet(s))`
+    console.log(`[FileImport] "${f.name}" uploaded and ${status}`)
+    if (data.parse_error) {
+      console.warn(`[FileImport] Parse warning for "${f.name}":`, data.parse_error)
+    }
+
+    return data
   }
 
   const addFiles = async (fileList) => {
+    const files = Array.from(fileList)
+    console.log(`[FileImport] Starting import of ${files.length} file(s):`, files.map(f => f.name))
     setError(null)
     setLoading(true)
     try {
-      for (const f of Array.from(fileList)) {
+      for (const f of files) {
         await uploadFile(f)
       }
+      console.log('[FileImport] All uploads complete — refreshing file list')
       await fetchFiles()
     } catch (e) {
       setError(e.message)
@@ -103,10 +142,13 @@ export default function FileImport() {
   }
 
   const removeFile = async (fileId) => {
+    console.log('[FileImport] Deleting file:', fileId)
     try {
-      await fetch(`/api/files/${fileId}`, { method: 'DELETE' })
-    } catch {
-      // Best-effort
+      const res = await fetch(`/api/files/${fileId}`, { method: 'DELETE' })
+      if (!res.ok) console.warn('[FileImport] Delete returned HTTP', res.status, 'for', fileId)
+      else console.log('[FileImport] Deleted:', fileId)
+    } catch (e) {
+      console.error('[FileImport] Delete failed for', fileId, '—', e.message)
     }
     setFiles(prev => prev.filter(f => f.file_id !== fileId))
   }
