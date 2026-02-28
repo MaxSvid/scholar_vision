@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import ThemeSwitcher from './ThemeSwitcher'
 import StudyTracker from './StudyTracker'
 import AppUsage from './AppUsage'
 import AttentionSpan from './AttentionSpan'
@@ -31,7 +30,6 @@ export default function Dashboard({ user, onLogout }) {
       <header className="dash-header">
         <div className="dash-logo">ScholarVision</div>
         <div className="dash-header-right">
-          <ThemeSwitcher />
           <div className="dash-user">{displayName}</div>
           <button className="retro-btn" onClick={onLogout}>Logout</button>
         </div>

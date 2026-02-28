@@ -1,60 +1,8 @@
 /* ============================================================
-   SCHOLARVISION — THEME SYSTEM
+   SCHOLARVISION — THEME
    ============================================================ */
 
-/* --- MATRIX (default): green on black --- */
-:root,
-[data-theme="matrix"] {
-  --bg:        #0d0d0d;
-  --bg-2:      #131313;
-  --bg-3:      #1a1a1a;
-  --fg:        #00ff41;
-  --fg-dim:    #00aa2a;
-  --fg-muted:  #004d12;
-  --border:    #00ff4133;
-  --border-hi: #00ff4166;
-  --font-main: 'Courier New', Courier, monospace;
-  --radius:    2px;
-}
-
-/* --- AMBER --- */
-[data-theme="amber"] {
-  --bg:        #100800;
-  --bg-2:      #1a0f00;
-  --bg-3:      #251500;
-  --fg:        #ffb000;
-  --fg-dim:    #cc8a00;
-  --fg-muted:  #663d00;
-  --border:    #ffb00033;
-  --border-hi: #ffb00066;
-}
-
-/* --- BLUEPRINT --- */
-[data-theme="blueprint"] {
-  --bg:        #00050f;
-  --bg-2:      #000d1a;
-  --bg-3:      #001226;
-  --fg:        #00e5ff;
-  --fg-dim:    #00aabb;
-  --fg-muted:  #004455;
-  --border:    #00e5ff33;
-  --border-hi: #00e5ff66;
-}
-
-/* --- IBM --- */
-[data-theme="ibm"] {
-  --bg:        #0000aa;
-  --bg-2:      #0000cc;
-  --bg-3:      #0000ee;
-  --fg:        #f0f0f0;
-  --fg-dim:    #bbbbbb;
-  --fg-muted:  #888888;
-  --border:    #f0f0f033;
-  --border-hi: #f0f0f066;
-}
-
-/* --- NOIR --- */
-[data-theme="noir"] {
+:root {
   --bg:        #ffffff;
   --bg-2:      #f5f5f5;
   --bg-3:      #ebebeb;
@@ -63,18 +11,8 @@
   --fg-muted:  #999999;
   --border:    #11111133;
   --border-hi: #11111166;
-}
-
-/* --- PHOSPHOR --- */
-[data-theme="phosphor"] {
-  --bg:        #001200;
-  --bg-2:      #001a00;
-  --bg-3:      #002200;
-  --fg:        #e8ffe8;
-  --fg-dim:    #b0d4b0;
-  --fg-muted:  #4d7a4d;
-  --border:    #e8ffe833;
-  --border-hi: #e8ffe866;
+  --font-main: 'Courier New', Courier, monospace;
+  --radius:    2px;
 }
 
 /* ============================================================
