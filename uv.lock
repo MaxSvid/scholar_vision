@@ -725,8 +725,10 @@ dependencies = [
     { name = "dotenv" },
     { name = "fastapi", extra = ["standard"] },
     { name = "psycopg", extra = ["binary"] },
+    { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "requests" },
+    { name = "uvicorn" },
 ]
 
 [package.metadata]
@@ -734,8 +736,10 @@ requires-dist = [
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.134.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.3" },
+    { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.13.1" },
     { name = "requests", specifier = ">=2.32.5" },
+    { name = "uvicorn", specifier = ">=0.41.0" },
 ]
 
 [[package]]
