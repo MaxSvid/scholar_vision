@@ -1,0 +1,63 @@
+.graph3d-panel {
+  max-width: 100%;
+}
+
+/* Legend bar */
+.graph3d-legend {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  flex-wrap: wrap;
+  font-size: 0.67rem;
+  letter-spacing: 0.1em;
+  color: var(--fg-muted);
+  margin-bottom: 0.75rem;
+}
+
+.g3d-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* Canvas container */
+.graph3d-canvas {
+  position: relative;
+  width: 100%;
+  height: 580px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: grab;
+}
+
+.graph3d-canvas:active {
+  cursor: grabbing;
+}
+
+.graph3d-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Hover tooltip */
+.graph3d-tooltip {
+  position: absolute;
+  background: var(--bg);
+  border: 1px solid var(--border-hi);
+  color: var(--fg);
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-family: var(--font-main, 'Courier New', monospace);
+  letter-spacing: 0.07em;
+  pointer-events: none;
+  z-index: 20;
+  white-space: nowrap;
+  text-shadow: 0 0 6px currentColor;
+}
