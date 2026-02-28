@@ -1,21 +1,39 @@
+import os
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 app = FastAPI(title="AI Student Assistant")
 
-# This defines what the incoming data should look like
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # Vite dev server (local only)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 class StudentQuery(BaseModel):
     subject: str
     question: str
 
-@app.get("/")
+
+@app.get("/api")
 async def home():
     return {"message": "System Active", "docs": "/docs"}
 
-@app.post("/ask")
+
+@app.post("/api/ask")
 async def ask_assistant(query: StudentQuery):
-    # This is where your AI logic will go later
+    # AI logic goes here later
     return {
         "reply": f"You asked about {query.subject}. Let me look that up for you!",
-        "received_question": query.question
+        "received_question": query.question,
     }
+
+
+# Serve the built React app — only if dist exists (skipped during local dev)
+if os.path.exists("front-end/dist"):
+    app.mount("/", StaticFiles(directory="front-end/dist", html=True), name="frontend")
