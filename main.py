@@ -18,7 +18,8 @@ async def lifespan(app: FastAPI):
     Path("uploads").mkdir(exist_ok=True)
     Path("models").mkdir(exist_ok=True)
     # Train / load ML models at startup (blocking but runs once)
-    ml_engine.ensure_ready()
+    ml_engine.ensure_ready()                  # train / load models (sync, runs once)
+    await ml_engine.load_cohort_from_db()    # refresh peer data from DB (async)
     yield
 
 

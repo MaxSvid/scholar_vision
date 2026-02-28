@@ -42,18 +42,19 @@ function getSessionId() {
 }
 
 export default function FileImport() {
-  const [files,    setFiles]    = useState([])
-  const [dragging, setDragging] = useState(false)
-  const [editId,   setEditId]   = useState(null)
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState(null)
-  const inputRef = useRef()
+  const [files,         setFiles]         = useState([])
+  const [dragging,      setDragging]      = useState(false)
+  const [editId,        setEditId]        = useState(null)
+  const [loading,       setLoading]       = useState(false)
+  const [error,         setError]         = useState(null)
+  const [parseResults,  setParseResults]  = useState({})   // file_id → {grades_count, snippets_count}
+  const [expandedId,    setExpandedId]    = useState(null)
+  const [detail,        setDetail]        = useState(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const inputRef  = useRef()
   const sessionId = getSessionId()
 
-  // Load existing files on mount
-  useEffect(() => {
-    fetchFiles()
-  }, [])
+  useEffect(() => { fetchFiles() }, [])
 
   async function fetchFiles() {
     console.log('[FileImport] Loading existing files for session:', sessionId)
@@ -118,13 +119,23 @@ export default function FileImport() {
   }
 
   const addFiles = async (fileList) => {
-    const files = Array.from(fileList)
-    console.log(`[FileImport] Starting import of ${files.length} file(s):`, files.map(f => f.name))
+    const fs = Array.from(fileList)
+    console.log(`[FileImport] Starting import of ${fs.length} file(s):`, fs.map(f => f.name))
     setError(null)
     setLoading(true)
     try {
-      for (const f of files) {
-        await uploadFile(f)
+      for (const f of fs) {
+        const data = await uploadFile(f)
+        // Cache parse counts from the upload response so they display immediately
+        if (data?.file?.file_id != null) {
+          setParseResults(prev => ({
+            ...prev,
+            [data.file.file_id]: {
+              grades_count:   data.grades_count   ?? 0,
+              snippets_count: data.snippets_count ?? 0,
+            },
+          }))
+        }
       }
       console.log('[FileImport] All uploads complete — refreshing file list')
       await fetchFiles()
@@ -132,6 +143,38 @@ export default function FileImport() {
       setError(e.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function fetchDetail(fileId) {
+    setDetailLoading(true)
+    try {
+      const res  = await fetch(`/api/files/${fileId}`)
+      const data = await res.json()
+      setDetail(data)
+      // Also populate counts in case this file was loaded from a previous session
+      setParseResults(prev => ({
+        ...prev,
+        [fileId]: {
+          grades_count:   data.grades?.length   ?? 0,
+          snippets_count: data.snippets?.length ?? 0,
+        },
+      }))
+    } catch (e) {
+      console.error('[FileImport] Failed to fetch detail for', fileId, e.message)
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
+  function toggleDetail(fileId) {
+    if (expandedId === fileId) {
+      setExpandedId(null)
+      setDetail(null)
+    } else {
+      setExpandedId(fileId)
+      setDetail(null)
+      fetchDetail(fileId)
     }
   }
 
@@ -151,12 +194,18 @@ export default function FileImport() {
       console.error('[FileImport] Delete failed for', fileId, '—', e.message)
     }
     setFiles(prev => prev.filter(f => f.file_id !== fileId))
+    if (expandedId === fileId) { setExpandedId(null); setDetail(null) }
   }
 
   const updateLocal = (fileId, key, val) =>
     setFiles(prev => prev.map(f => f.file_id === fileId ? { ...f, [key]: val } : f))
 
   const icon = type => FILE_ICONS[type] || FILE_ICONS.default
+
+  const hasGradeLetters = grades => grades?.some(g => g.grade_letter)
+  const hasPercentages  = grades => grades?.some(g => g.percentage != null)
+  const hasCourseCodes  = grades => grades?.some(g => g.course_code)
+  const hasSemesters    = grades => grades?.some(g => g.semester)
 
   return (
     <div className="subpanel">
@@ -225,46 +274,150 @@ export default function FileImport() {
       {/* File list */}
       <div className="fi-list">
         {files.map(f => (
-          <div key={f.file_id} className="retro-card fi-file-row">
-            <div className="fi-file-icon">{icon(f.file_type)}</div>
+          <div key={f.file_id} className="retro-card fi-file-card">
 
-            <div className="fi-file-info">
-              <div className="fi-file-name">{f.original_name}</div>
-              <div className="fi-file-meta muted-text">
-                {formatSize(f.file_size)} · {formatDate(f.uploaded_at)} · {(f.file_type || '').toUpperCase()}
-                {f.parse_status && (
-                  <span className={`fi-parse-badge fi-parse-${f.parse_status}`}>
-                    {' '}· {f.parse_status.toUpperCase()}
-                  </span>
-                )}
+            {/* ── Main row ─────────────────────────────────────── */}
+            <div className="fi-file-row">
+              <div className="fi-file-icon">{icon(f.file_type)}</div>
+
+              <div className="fi-file-info">
+                <div className="fi-file-name">{f.original_name}</div>
+                <div className="fi-file-meta muted-text">
+                  {formatSize(f.file_size)} · {formatDate(f.uploaded_at)} · {(f.file_type || '').toUpperCase()}
+                  {f.parse_status && (
+                    <span className={`fi-parse-badge fi-parse-${f.parse_status}`}>
+                      {' '}· {f.parse_status.toUpperCase()}
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {editId === f.file_id ? (
+                <div className="fi-edit-row">
+                  <select
+                    className="retro-input fi-cat-select"
+                    value={f.category}
+                    onChange={e => updateLocal(f.file_id, 'category', e.target.value)}
+                  >
+                    {FILE_CATS.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                  <input
+                    className="retro-input fi-notes-input"
+                    placeholder="Notes..."
+                    value={f.notes || ''}
+                    onChange={e => updateLocal(f.file_id, 'notes', e.target.value)}
+                  />
+                  <button className="retro-btn" onClick={() => setEditId(null)}>DONE</button>
+                </div>
+              ) : (
+                <div className="fi-file-right">
+                  <span className="fi-cat-badge muted-text">{(f.category || 'Other').toUpperCase()}</span>
+                  {f.notes && <span className="fi-notes muted-text">{f.notes}</span>}
+                  <button className="retro-btn fi-edit-btn" onClick={() => setEditId(f.file_id)}>EDIT</button>
+                  <button className="sp-delete muted-text" onClick={() => removeFile(f.file_id)}>✕</button>
+                </div>
+              )}
             </div>
 
-            {editId === f.file_id ? (
-              <div className="fi-edit-row">
-                <select
-                  className="retro-input fi-cat-select"
-                  value={f.category}
-                  onChange={e => updateLocal(f.file_id, 'category', e.target.value)}
+            {/* ── Extraction strip (parse succeeded) ───────────── */}
+            {f.parse_status === 'done' && (
+              <div className="fi-extraction-strip">
+                <div className="fi-extract-chips">
+                  {parseResults[f.file_id] ? (
+                    <>
+                      <span className="fi-extract-chip">
+                        ◈ {parseResults[f.file_id].grades_count} GRADE{parseResults[f.file_id].grades_count !== 1 ? 'S' : ''}
+                      </span>
+                      <span className="fi-extract-chip">
+                        ◈ {parseResults[f.file_id].snippets_count} TEXT SNIPPET{parseResults[f.file_id].snippets_count !== 1 ? 'S' : ''}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="fi-extract-label muted-text">DATA EXTRACTED</span>
+                  )}
+                </div>
+                <button
+                  className="retro-btn fi-detail-btn"
+                  onClick={() => toggleDetail(f.file_id)}
                 >
-                  {FILE_CATS.map(c => <option key={c}>{c}</option>)}
-                </select>
-                <input
-                  className="retro-input fi-notes-input"
-                  placeholder="Notes..."
-                  value={f.notes || ''}
-                  onChange={e => updateLocal(f.file_id, 'notes', e.target.value)}
-                />
-                <button className="retro-btn" onClick={() => setEditId(null)}>DONE</button>
-              </div>
-            ) : (
-              <div className="fi-file-right">
-                <span className="fi-cat-badge muted-text">{(f.category || 'Other').toUpperCase()}</span>
-                {f.notes && <span className="fi-notes muted-text">{f.notes}</span>}
-                <button className="retro-btn fi-edit-btn" onClick={() => setEditId(f.file_id)}>EDIT</button>
-                <button className="sp-delete muted-text" onClick={() => removeFile(f.file_id)}>✕</button>
+                  {expandedId === f.file_id ? 'HIDE' : 'VIEW DATA'}
+                </button>
               </div>
             )}
+
+            {/* ── Extraction strip (parse failed) ──────────────── */}
+            {f.parse_status === 'failed' && (
+              <div className="fi-extraction-strip fi-extract-failed">
+                <span className="muted-text fi-extract-label">
+                  ✕ PARSE FAILED — no data could be extracted from this file
+                </span>
+              </div>
+            )}
+
+            {/* ── Detail panel ─────────────────────────────────── */}
+            {expandedId === f.file_id && (
+              <div className="fi-detail-panel">
+                {detailLoading && (
+                  <div className="muted-text fi-detail-loading">LOADING…</div>
+                )}
+
+                {!detailLoading && detail && (
+                  <>
+                    {/* Available-for-analysis chips */}
+                    {(detail.grades?.length > 0 || detail.snippets?.length > 0) && (
+                      <div className="fi-avail-row">
+                        <span className="fi-avail-label muted-text">AVAILABLE FOR ANALYSIS:</span>
+                        {hasGradeLetters(detail.grades) && <span className="fi-avail-chip">GRADE LETTERS</span>}
+                        {hasPercentages(detail.grades)  && <span className="fi-avail-chip">PERCENTAGES</span>}
+                        {hasCourseCodes(detail.grades)  && <span className="fi-avail-chip">COURSE CODES</span>}
+                        {hasSemesters(detail.grades)    && <span className="fi-avail-chip">SEMESTER DATA</span>}
+                        {detail.snippets?.length > 0    && <span className="fi-avail-chip">TEXT SNIPPETS</span>}
+                      </div>
+                    )}
+
+                    {/* Grades table */}
+                    {detail.grades?.length > 0 && (
+                      <div className="fi-grades-section">
+                        <div className="fi-section-hdr muted-text">
+                          GRADES — {detail.grades.length} ENTR{detail.grades.length !== 1 ? 'IES' : 'Y'} EXTRACTED
+                        </div>
+                        <div className="fi-grades-table">
+                          {detail.grades.map((g, i) => (
+                            <div key={i} className="fi-grade-row">
+                              {g.course_code && (
+                                <span className="fi-grade-code">{g.course_code}</span>
+                              )}
+                              <span className="fi-grade-name">{g.course_name || '—'}</span>
+                              {g.grade_letter && (
+                                <span className="fi-grade-letter">{g.grade_letter}</span>
+                              )}
+                              {g.percentage != null && (
+                                <span className="fi-grade-pct">
+                                  {parseFloat(g.percentage).toFixed(1)}%
+                                </span>
+                              )}
+                              {g.semester && (
+                                <span className="fi-grade-sem muted-text">{g.semester}</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* No structured data */}
+                    {detail.grades?.length === 0 && (
+                      <div className="muted-text fi-no-data">
+                        {detail.snippets?.length > 0
+                          ? `No grade tables detected. ${detail.snippets.length} text snippet(s) captured for NLP analysis.`
+                          : 'No structured data found. Raw text is stored for full-text search.'}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
           </div>
         ))}
 

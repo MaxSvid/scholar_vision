@@ -44,11 +44,159 @@
   gap: 0.6rem;
 }
 
+/* Card wrapper — replaces the old direct retro-card on fi-file-row */
+.fi-file-card {
+  display: flex;
+  flex-direction: column;
+}
+
 .fi-file-row {
   display: flex;
   align-items: flex-start;
   gap: 0.9rem;
   flex-wrap: wrap;
+}
+
+/* ── Extraction strip ─────────────────────────────────────────── */
+.fi-extraction-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding-top: 0.5rem;
+  margin-top: 0.4rem;
+  border-top: 1px solid var(--border);
+}
+
+.fi-extract-chips {
+  display: flex;
+  gap: 0.4rem;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.fi-extract-chip {
+  font-size: 0.63rem;
+  letter-spacing: 0.07em;
+  color: var(--fg);
+  background: var(--bg-3);
+  border: 1px solid var(--border-hi);
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius);
+}
+
+.fi-extract-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+}
+
+.fi-extract-failed { border-top-color: #cc4444; }
+.fi-extract-failed .fi-extract-label { color: #cc4444; }
+
+.fi-detail-btn {
+  font-size: 0.63rem;
+  padding: 0.25rem 0.55rem;
+  flex-shrink: 0;
+}
+
+/* ── Detail panel ─────────────────────────────────────────────── */
+.fi-detail-panel {
+  padding-top: 0.7rem;
+  margin-top: 0.4rem;
+  border-top: 1px dashed var(--border);
+}
+
+.fi-detail-loading {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+/* Available-for-analysis row */
+.fi-avail-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  margin-bottom: 0.7rem;
+}
+
+.fi-avail-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.fi-avail-chip {
+  font-size: 0.6rem;
+  letter-spacing: 0.07em;
+  border: 1px solid var(--fg-dim);
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius);
+  color: var(--fg);
+}
+
+/* Grades table */
+.fi-grades-section { margin-bottom: 0.5rem; }
+
+.fi-section-hdr {
+  font-size: 0.63rem;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.35rem;
+}
+
+.fi-grades-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.fi-grade-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  font-size: 0.72rem;
+  flex-wrap: wrap;
+  padding: 0.22rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.fi-grade-code {
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  color: var(--fg-dim);
+  min-width: 52px;
+  flex-shrink: 0;
+}
+
+.fi-grade-name {
+  flex: 1;
+  min-width: 80px;
+  color: var(--fg);
+}
+
+.fi-grade-letter {
+  font-size: 0.78rem;
+  color: var(--fg);
+  min-width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.fi-grade-pct {
+  font-size: 0.7rem;
+  color: var(--fg-dim);
+  min-width: 44px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.fi-grade-sem {
+  font-size: 0.62rem;
+  flex-shrink: 0;
+}
+
+.fi-no-data {
+  font-size: 0.72rem;
+  font-style: italic;
 }
 
 .fi-file-icon {
@@ -131,6 +279,9 @@
   .fi-edit-row { flex-direction: column; }
   .fi-cat-select, .fi-notes-input { max-width: 100%; }
   .fi-file-right { gap: 0.4rem; }
+  .fi-grade-row { gap: 0.35rem; }
+  .fi-grade-code { min-width: 40px; }
+  .fi-avail-row { gap: 0.3rem; }
 }
 
 /* Parse status badge */

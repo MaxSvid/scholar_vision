@@ -303,6 +303,21 @@ class MLEngine:
         return score, "\n".join(lines)
 
 
+    async def load_cohort_from_db(self) -> None:
+        """
+        Replace self.train_df with live data from the cohort_students table.
+        Called from the FastAPI lifespan after ensure_ready().
+        Falls back silently to the CSV-based DataFrame if the DB is unavailable.
+        """
+        from database.cohort import async_fetch_cohort_df
+        df = await async_fetch_cohort_df()
+        if df is not None and len(df) > 0:
+            self.train_df = df
+            log.info("Peer mode: using %d cohort rows from DB.", len(df))
+        else:
+            log.info("Peer mode: using %d cohort rows from CSV fallback.", len(self.train_df) if self.train_df is not None else 0)
+
+
 # ─── Singleton ────────────────────────────────────────────────────────────────
 
 engine = MLEngine()
