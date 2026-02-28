@@ -13,6 +13,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 
 from database.execute import fetch_one
+from ml_engine import engine
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
@@ -184,4 +185,150 @@ async def get_baseline(session_id: str = Query(...)):
             "studySessionCount":   study_session_count,
             "cohort":              True,    # always active: 1000 cohort students seeded in DB
         },
+    }
+
+
+@router.get("/overview")
+async def get_overview(session_id: str = Query(...)):
+    """
+    Aggregate snapshot for the Overview dashboard card row.
+    All four values are derived from the session's imported data.
+    """
+
+    # ── Study hours logged today ──────────────────────────────────────────────
+    today_row = await fetch_one(
+        """
+        SELECT ROUND(CAST(COALESCE(SUM(se.duration_mins), 0) AS numeric) / 60.0, 1) AS hours_today
+        FROM study_entries se
+        JOIN study_imports si ON si.import_id = se.import_id
+        WHERE si.session_id = %s
+          AND se.started_at::date = CURRENT_DATE
+        """,
+        (session_id,),
+    )
+    study_hours_today = float(today_row["hours_today"] or 0) if today_row else 0.0
+
+    # ── Historical average attention span ─────────────────────────────────────
+    att_row = await fetch_one(
+        """
+        SELECT ROUND(CAST(AVG(se.duration_mins::float / (se.breaks_taken + 1)) AS numeric), 0) AS avg_attention
+        FROM study_entries se
+        JOIN study_imports si ON si.import_id = se.import_id
+        WHERE si.session_id = %s
+        """,
+        (session_id,),
+    )
+    avg_attention = (
+        float(att_row["avg_attention"])
+        if att_row and att_row["avg_attention"] is not None
+        else None
+    )
+
+    # ── Top app by duration today ─────────────────────────────────────────────
+    top_app_row = await fetch_one(
+        """
+        SELECT ae.app_name
+        FROM app_usage_entries ae
+        JOIN app_usage_imports ai ON ai.import_id = ae.import_id
+        WHERE ai.session_id = %s
+          AND ae.logged_date = CURRENT_DATE
+        GROUP BY ae.app_name
+        ORDER BY SUM(ae.duration_mins) DESC
+        LIMIT 1
+        """,
+        (session_id,),
+    )
+    top_app_today = top_app_row["app_name"] if top_app_row else None
+
+    # ── Baseline metrics for grade prediction ─────────────────────────────────
+
+    focus_row = await fetch_one(
+        """
+        SELECT ROUND(
+            SUM(CASE WHEN ae.category='Productive' THEN ae.duration_mins ELSE 0 END) * 100.0
+            / NULLIF(SUM(ae.duration_mins), 0), 1) AS focus_ratio
+        FROM app_usage_entries ae
+        JOIN app_usage_imports ai ON ai.import_id = ae.import_id
+        WHERE ai.session_id = %s
+        """,
+        (session_id,),
+    )
+    focus_ratio = (
+        float(focus_row["focus_ratio"])
+        if focus_row and focus_row["focus_ratio"] is not None
+        else 70.0
+    )
+
+    break_row = await fetch_one(
+        """
+        SELECT ROUND(CAST(AVG(se.breaks_taken) AS numeric), 1) AS avg_breaks
+        FROM study_entries se
+        JOIN study_imports si ON si.import_id = se.import_id
+        WHERE si.session_id = %s
+        """,
+        (session_id,),
+    )
+    break_freq = (
+        float(break_row["avg_breaks"])
+        if break_row and break_row["avg_breaks"] is not None
+        else 2.0
+    )
+
+    study_row = await fetch_one(
+        """
+        SELECT ROUND(CAST(AVG(daily_mins) / 60.0 AS numeric), 1) AS avg_daily_hours
+        FROM (
+            SELECT se.started_at::date AS day, SUM(se.duration_mins) AS daily_mins
+            FROM study_entries se
+            JOIN study_imports si ON si.import_id = se.import_id
+            WHERE si.session_id = %s
+            GROUP BY day
+        ) d
+        """,
+        (session_id,),
+    )
+    study_hours_bl = (
+        float(study_row["avg_daily_hours"])
+        if study_row and study_row["avg_daily_hours"] is not None
+        else 5.0
+    )
+
+    sleep_row = await fetch_one(
+        """
+        SELECT ROUND(CAST(AVG(hm.value_num) AS numeric), 1) AS avg_sleep
+        FROM health_metrics hm
+        JOIN health_imports hi ON hi.import_id = hm.import_id
+        WHERE hi.session_id = %s
+          AND hm.type = 'sleep_analysis'
+          AND hm.value_num IS NOT NULL
+        """,
+        (session_id,),
+    )
+    sleep_hours = (
+        float(sleep_row["avg_sleep"])
+        if sleep_row and sleep_row["avg_sleep"] is not None
+        else 7.0
+    )
+
+    # ── Run 'strict' Decision Tree prediction ────────────────────────────────
+    predicted_grade = None
+    if engine.dt is not None:
+        values = {
+            "studyHours":    study_hours_bl,
+            "attentionSpan": avg_attention if avg_attention is not None else 40.0,
+            "focusRatio":    focus_ratio,
+            "sleepHours":    sleep_hours,
+            "breakFreq":     break_freq,
+        }
+        try:
+            score, _ = engine.predict_strict(values)
+            predicted_grade = engine._score_to_grade(score)
+        except Exception:
+            predicted_grade = None
+
+    return {
+        "studyHoursToday":       study_hours_today,
+        "avgAttentionSpan":      avg_attention,
+        "topAppToday":           top_app_today,
+        "currentPredictedGrade": predicted_grade,
     }

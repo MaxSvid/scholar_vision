@@ -120,11 +120,50 @@ export default function Dashboard({ user, onLogout }) {
 
 /* ─── OVERVIEW PANEL ─── */
 function OverviewPanel({ user, setTab }) {
+  const [stats, setStats] = useState(null)
+
+  useEffect(() => {
+    function load() {
+      const sessionId = sessionStorage.getItem('sv_session_id') || ''
+      fetch(`/api/profile/overview?session_id=${sessionId}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => d && setStats(d))
+        .catch(() => {})
+    }
+    load()
+    window.addEventListener('sv:data-imported', load)
+    return () => window.removeEventListener('sv:data-imported', load)
+  }, [])
+
   const cards = [
-    { icon: '◈', label: 'Study Hours Today',   value: '—', sub: 'No sessions logged yet',  tab: 'study' },
-    { icon: '◉', label: 'Avg. Attention Span', value: '—', sub: 'Start a focus session',   tab: 'attention' },
-    { icon: '◐', label: 'Top App Today',        value: '—', sub: 'Log your app usage',      tab: 'apps' },
-    { icon: '◇', label: 'Predicted Grade',      value: '—', sub: 'Add data to unlock',      tab: 'prediction' },
+    {
+      icon:  '◈',
+      label: 'Study Hours Today',
+      value: stats != null ? `${stats.studyHoursToday}h` : '—',
+      sub:   stats?.studyHoursToday > 0 ? 'Hours logged today' : 'No sessions logged yet',
+      tab:   'study',
+    },
+    {
+      icon:  '◉',
+      label: 'Avg. Attention Span',
+      value: stats?.avgAttentionSpan != null ? `${stats.avgAttentionSpan}min` : '—',
+      sub:   stats?.avgAttentionSpan != null ? 'Avg uninterrupted focus block' : 'Start a focus session',
+      tab:   'attention',
+    },
+    {
+      icon:  '◐',
+      label: 'Top App Today',
+      value: stats?.topAppToday ?? '—',
+      sub:   stats?.topAppToday ? 'Most used app today' : 'Log your app usage',
+      tab:   'apps',
+    },
+    {
+      icon:  '◇',
+      label: 'Predicted Grade',
+      value: stats?.currentPredictedGrade ?? '—',
+      sub:   stats?.currentPredictedGrade ? 'Based on your baseline' : 'Add data to unlock',
+      tab:   'prediction',
+    },
   ]
 
   return (
