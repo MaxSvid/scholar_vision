@@ -5,6 +5,7 @@ import AppUsage from './AppUsage'
 import AttentionSpan from './AttentionSpan'
 import PredictionPanel from './PredictionPanel'
 import FileImport from './FileImport'
+import DataGraph3D from './DataGraph3D'
 import './Dashboard.css'
 
 const TABS = [
@@ -13,6 +14,7 @@ const TABS = [
   { id: 'apps',        label: 'App Usage',   icon: '◐' },
   { id: 'attention',   label: 'Attention',   icon: '◉' },
   { id: 'prediction',  label: 'Prediction',  icon: '◇' },
+  { id: 'graph3d',     label: '3D Graph',    icon: '◈' },
   { id: 'files',       label: 'Files',       icon: '▦' },
 ]
 
@@ -62,6 +64,7 @@ export default function Dashboard({ user, onLogout }) {
           {tab === 'apps'       && <AppUsage />}
           {tab === 'attention'  && <AttentionSpan />}
           {tab === 'prediction' && <PredictionPanel user={user} />}
+          {tab === 'graph3d'    && <DataGraph3D user={user} />}
           {tab === 'files'      && <FileImport />}
         </main>
       </div>
