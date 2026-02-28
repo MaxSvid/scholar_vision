@@ -1,10 +1,23 @@
 import os
+from contextlib import asynccontextmanager
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-app = FastAPI(title="AI Student Assistant")
+from routers.files import router as files_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Ensure uploads directory exists at startup
+    Path("uploads").mkdir(exist_ok=True)
+    yield
+
+
+app = FastAPI(title="AI Student Assistant", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -13,6 +26,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(files_router)
 
 
 class StudentQuery(BaseModel):

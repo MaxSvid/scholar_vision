@@ -169,10 +169,24 @@
     border-bottom: 1px solid var(--border);
   }
 
-  .hero-graph-pane {
-    height: 420px;
-  }
+  .hero-graph-pane { height: 420px; }
 
   .hero-nav { padding: 0.8rem 1rem; }
   .hero-nav-right { gap: 0.5rem; }
+
+  .hero-features { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+}
+
+@media (max-width: 480px) {
+  .hero-nav { padding: 0.6rem 0.8rem; }
+  .hero-nav-right { gap: 0.4rem; }
+  /* shrink CTA buttons on tiny screens */
+  .hero-cta { padding: 0.55rem 1.1rem; font-size: 0.8rem; }
+
+  .hero-copy { padding: 1.8rem 1rem; gap: 1rem; }
+
+  .hero-graph-pane { height: 300px; }
+
+  .hero-features-section { padding: 1.5rem 1rem; }
+  .hero-features { grid-template-columns: 1fr 1fr; }
 }

@@ -110,3 +110,31 @@
 
 .fi-cat-select   { max-width: 140px; }
 .fi-notes-input  { flex: 1; min-width: 120px; }
+
+/* Upload states */
+.fi-dropzone.fi-uploading {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fi-error {
+  font-size: 0.75rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  margin-top: 0.5rem;
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .fi-dropzone { padding: 1.8rem 1rem; }
+  .fi-file-row { gap: 0.5rem; }
+  .fi-edit-row { flex-direction: column; }
+  .fi-cat-select, .fi-notes-input { max-width: 100%; }
+  .fi-file-right { gap: 0.4rem; }
+}
+
+/* Parse status badge */
+.fi-parse-badge        { font-size: 0.65rem; }
+.fi-parse-done         { color: var(--fg-dim); }
+.fi-parse-failed       { color: #cc4444; }
+.fi-parse-pending      { color: var(--fg-muted); }

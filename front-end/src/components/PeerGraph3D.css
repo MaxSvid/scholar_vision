@@ -145,6 +145,19 @@
   height: 100% !important;
 }
 
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .peer-canvas { height: 440px; }
+}
+@media (max-width: 600px) {
+  .peer-canvas { height: 320px; }
+  .peer-card { min-width: 100px; padding: 0.5rem 0.65rem; }
+  .peer-alias { font-size: 0.65rem; }
+  .peer-groups { gap: 0.35rem; }
+  .peer-group-btn { padding: 0.25rem 0.55rem; font-size: 0.65rem; }
+  .peer-legend { gap: 0.8rem; font-size: 0.62rem; }
+}
+
 .peer-tooltip {
   position: absolute;
   background: var(--bg);

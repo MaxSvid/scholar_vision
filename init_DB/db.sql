@@ -260,6 +260,53 @@ CREATE TABLE xai_explanations (
     direction       VARCHAR(10) -- 'positive' | 'negative'
 );
 
+-- ============================================================
+--  SECTION 9 — FILE IMPORT & PARSING
+-- ============================================================
+
+-- 9.1  Uploaded file registry
+CREATE TABLE uploaded_files (
+    file_id       UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id       UUID         REFERENCES users(user_id) ON DELETE SET NULL,
+    session_id    VARCHAR(64),                 -- anonymous browser session UUID
+    original_name VARCHAR(255) NOT NULL,
+    stored_name   VARCHAR(255) NOT NULL,       -- UUID-based filename on disk
+    file_type     VARCHAR(20)  NOT NULL,       -- pdf, docx, csv, xlsx, txt, png, jpg
+    file_size     BIGINT,
+    category      VARCHAR(50)  DEFAULT 'Other',
+    notes         TEXT,
+    storage_path  TEXT         NOT NULL,
+    parse_status  VARCHAR(20)  DEFAULT 'pending',  -- pending | done | failed
+    raw_text      TEXT,                        -- full extracted text for search/NLP
+    uploaded_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 9.2  Structured grades/scores extracted from uploaded files
+CREATE TABLE parsed_grades (
+    grade_id      SERIAL       PRIMARY KEY,
+    file_id       UUID         NOT NULL REFERENCES uploaded_files(file_id) ON DELETE CASCADE,
+    user_id       UUID         REFERENCES users(user_id) ON DELETE SET NULL,
+    course_name   VARCHAR(255),
+    course_code   VARCHAR(50),
+    grade_letter  VARCHAR(5),                  -- A+, B, C-, etc.
+    score         FLOAT,
+    max_score     FLOAT,
+    percentage    FLOAT,                       -- normalised 0–100
+    semester      VARCHAR(50),
+    source_row    INT,                         -- row number in original table (CSV/XLSX)
+    extracted_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 9.3  Key text snippets extracted from documents (feedback, comments, notes)
+CREATE TABLE parsed_text_snippets (
+    snippet_id    SERIAL       PRIMARY KEY,
+    file_id       UUID         NOT NULL REFERENCES uploaded_files(file_id) ON DELETE CASCADE,
+    snippet_type  VARCHAR(50),                 -- 'feedback', 'comment', 'grade_line', 'heading'
+    content       TEXT         NOT NULL,
+    page_number   INT,
+    extracted_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 8.3  Improvement recommendations  (generated from XAI output)
 CREATE TABLE improvement_recommendations (
     rec_id          SERIAL    PRIMARY KEY,

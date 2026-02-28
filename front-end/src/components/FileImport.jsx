@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import './SubPanel.css'
 import './FileImport.css'
 
@@ -20,28 +20,80 @@ const FILE_ICONS = {
 const FILE_CATS = ['Grade Sheet', 'Feedback Report', 'Assignment', 'Exam Result', 'Syllabus', 'Other']
 
 function formatSize(bytes) {
+  if (!bytes) return '—'
   if (bytes < 1024) return `${bytes}B`
   if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)}KB`
   return `${(bytes / 1024 ** 2).toFixed(1)}MB`
 }
 
-export default function FileImport() {
-  const [files, setFiles] = useState([])
-  const [dragging, setDragging] = useState(false)
-  const [editId, setEditId] = useState(null)
-  const inputRef = useRef()
+function formatDate(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleDateString('en-GB')
+}
 
-  const addFiles = (fileList) => {
-    const newFiles = Array.from(fileList).map(f => ({
-      id:       Date.now() + Math.random(),
-      name:     f.name,
-      size:     f.size,
-      type:     f.name.split('.').pop().toLowerCase(),
-      category: 'Other',
-      uploaded: new Date().toLocaleDateString('en-GB'),
-      notes:    '',
-    }))
-    setFiles(prev => [...newFiles, ...prev])
+// Stable session ID persisted across page reloads
+function getSessionId() {
+  let id = sessionStorage.getItem('sv_session_id')
+  if (!id) {
+    id = crypto.randomUUID()
+    sessionStorage.setItem('sv_session_id', id)
+  }
+  return id
+}
+
+export default function FileImport() {
+  const [files,    setFiles]    = useState([])
+  const [dragging, setDragging] = useState(false)
+  const [editId,   setEditId]   = useState(null)
+  const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState(null)
+  const inputRef = useRef()
+  const sessionId = getSessionId()
+
+  // Load existing files on mount
+  useEffect(() => {
+    fetchFiles()
+  }, [])
+
+  async function fetchFiles() {
+    try {
+      const res = await fetch(`/api/files?session_id=${sessionId}`)
+      if (!res.ok) return
+      const data = await res.json()
+      setFiles(data.files || [])
+    } catch {
+      // Backend not running — stay with empty list
+    }
+  }
+
+  async function uploadFile(f, category = 'Other', notes = '') {
+    const form = new FormData()
+    form.append('file',       f)
+    form.append('session_id', sessionId)
+    form.append('category',   category)
+    form.append('notes',      notes)
+
+    const res = await fetch('/api/files/upload', { method: 'POST', body: form })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.detail || `Upload failed (${res.status})`)
+    }
+    return res.json()
+  }
+
+  const addFiles = async (fileList) => {
+    setError(null)
+    setLoading(true)
+    try {
+      for (const f of Array.from(fileList)) {
+        await uploadFile(f)
+      }
+      await fetchFiles()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const onDrop = e => {
@@ -50,10 +102,17 @@ export default function FileImport() {
     addFiles(e.dataTransfer.files)
   }
 
-  const removeFile = id => setFiles(prev => prev.filter(f => f.id !== id))
+  const removeFile = async (fileId) => {
+    try {
+      await fetch(`/api/files/${fileId}`, { method: 'DELETE' })
+    } catch {
+      // Best-effort
+    }
+    setFiles(prev => prev.filter(f => f.file_id !== fileId))
+  }
 
-  const updateFile = (id, key, val) =>
-    setFiles(prev => prev.map(f => f.id === id ? { ...f, [key]: val } : f))
+  const updateLocal = (fileId, key, val) =>
+    setFiles(prev => prev.map(f => f.file_id === fileId ? { ...f, [key]: val } : f))
 
   const icon = type => FILE_ICONS[type] || FILE_ICONS.default
 
@@ -62,16 +121,16 @@ export default function FileImport() {
       <div className="panel-title">&gt; ACADEMIC FILE IMPORT</div>
       <p className="muted-text" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>
         Upload grade sheets, feedback reports, assignments, and exam results.
-        Files are stored locally in your browser session.
+        Files are parsed and stored for analysis.
       </p>
 
       {/* Drop zone */}
       <div
-        className={`fi-dropzone ${dragging ? 'dragging' : ''}`}
+        className={`fi-dropzone ${dragging ? 'dragging' : ''} ${loading ? 'fi-uploading' : ''}`}
         onDragOver={e => { e.preventDefault(); setDragging(true) }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        onClick={() => inputRef.current.click()}
+        onClick={() => !loading && inputRef.current.click()}
       >
         <input
           ref={inputRef}
@@ -81,17 +140,23 @@ export default function FileImport() {
           style={{ display: 'none' }}
           onChange={e => addFiles(e.target.files)}
         />
-        <div className="fi-drop-icon">{dragging ? '▼' : '▦'}</div>
+        <div className="fi-drop-icon">{loading ? '…' : dragging ? '▼' : '▦'}</div>
         <div className="fi-drop-text">
-          {dragging
-            ? 'DROP FILES HERE'
-            : 'DRAG & DROP FILES HERE  //  CLICK TO BROWSE'
+          {loading
+            ? 'UPLOADING…'
+            : dragging
+              ? 'DROP FILES HERE'
+              : 'DRAG & DROP FILES HERE  //  CLICK TO BROWSE'
           }
         </div>
         <div className="fi-drop-sub muted-text">
           Accepted: PDF, DOC, DOCX, XLSX, CSV, TXT, PNG, JPG
         </div>
       </div>
+
+      {error && (
+        <div className="fi-error muted-text">&gt; {error}</div>
+      )}
 
       {/* Stats */}
       {files.length > 0 && (
@@ -102,7 +167,7 @@ export default function FileImport() {
           </div>
           <div className="retro-card sp-stat">
             <div className="sp-stat-val">
-              {formatSize(files.reduce((s, f) => s + f.size, 0))}
+              {formatSize(files.reduce((s, f) => s + (f.file_size || 0), 0))}
             </div>
             <div className="sp-stat-lbl">TOTAL SIZE</div>
           </div>
@@ -118,45 +183,50 @@ export default function FileImport() {
       {/* File list */}
       <div className="fi-list">
         {files.map(f => (
-          <div key={f.id} className="retro-card fi-file-row">
-            <div className="fi-file-icon">{icon(f.type)}</div>
+          <div key={f.file_id} className="retro-card fi-file-row">
+            <div className="fi-file-icon">{icon(f.file_type)}</div>
 
             <div className="fi-file-info">
-              <div className="fi-file-name">{f.name}</div>
+              <div className="fi-file-name">{f.original_name}</div>
               <div className="fi-file-meta muted-text">
-                {formatSize(f.size)} · {f.uploaded} · {f.type.toUpperCase()}
+                {formatSize(f.file_size)} · {formatDate(f.uploaded_at)} · {(f.file_type || '').toUpperCase()}
+                {f.parse_status && (
+                  <span className={`fi-parse-badge fi-parse-${f.parse_status}`}>
+                    {' '}· {f.parse_status.toUpperCase()}
+                  </span>
+                )}
               </div>
             </div>
 
-            {editId === f.id ? (
+            {editId === f.file_id ? (
               <div className="fi-edit-row">
                 <select
                   className="retro-input fi-cat-select"
                   value={f.category}
-                  onChange={e => updateFile(f.id, 'category', e.target.value)}
+                  onChange={e => updateLocal(f.file_id, 'category', e.target.value)}
                 >
                   {FILE_CATS.map(c => <option key={c}>{c}</option>)}
                 </select>
                 <input
                   className="retro-input fi-notes-input"
                   placeholder="Notes..."
-                  value={f.notes}
-                  onChange={e => updateFile(f.id, 'notes', e.target.value)}
+                  value={f.notes || ''}
+                  onChange={e => updateLocal(f.file_id, 'notes', e.target.value)}
                 />
                 <button className="retro-btn" onClick={() => setEditId(null)}>DONE</button>
               </div>
             ) : (
               <div className="fi-file-right">
-                <span className="fi-cat-badge muted-text">{f.category.toUpperCase()}</span>
+                <span className="fi-cat-badge muted-text">{(f.category || 'Other').toUpperCase()}</span>
                 {f.notes && <span className="fi-notes muted-text">{f.notes}</span>}
-                <button className="retro-btn fi-edit-btn" onClick={() => setEditId(f.id)}>EDIT</button>
-                <button className="sp-delete muted-text" onClick={() => removeFile(f.id)}>✕</button>
+                <button className="retro-btn fi-edit-btn" onClick={() => setEditId(f.file_id)}>EDIT</button>
+                <button className="sp-delete muted-text" onClick={() => removeFile(f.file_id)}>✕</button>
               </div>
             )}
           </div>
         ))}
 
-        {files.length === 0 && (
+        {files.length === 0 && !loading && (
           <div className="sp-empty muted-text">&gt; No files uploaded yet.</div>
         )}
       </div>

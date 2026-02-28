@@ -78,6 +78,17 @@
   height: 100% !important;
 }
 
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .graph3d-canvas { height: 460px; }
+}
+@media (max-width: 600px) {
+  .graph3d-canvas { height: 340px; }
+  .graph3d-groups { gap: 0.35rem; }
+  .g3d-group-btn { padding: 0.25rem 0.55rem; font-size: 0.65rem; }
+  .graph3d-legend { gap: 0.8rem; font-size: 0.62rem; }
+}
+
 /* Hover tooltip */
 .graph3d-tooltip {
   position: absolute;
