@@ -1,87 +1,113 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './SubPanel.css'
 import './PredictionPanel.css'
 
-function clamp(v, min, max) { return Math.max(min, Math.min(max, v)) }
+const MODES = [
+  {
+    id:    'strict',
+    label: 'CLEAR-CUT RULES',
+    desc:  'Decision Tree — IF/THEN rule path explaining your predicted grade.',
+  },
+  {
+    id:    'peer',
+    label: 'PEER COMPARISON',
+    desc:  'KNN — How you compare to the 5 most similar students in the cohort.',
+  },
+  {
+    id:    'deep',
+    label: 'DEEP CONTEXT',
+    desc:  'Random Forest + SHAP — Exact contribution of each factor to your score.',
+  },
+]
 
-function computePrediction(inputs) {
-  const {
-    studyHours, attentionSpan, focusRatio,
-    currentGrade, sleepHours, breakFreq,
-  } = inputs
+const SLIDERS = [
+  { key: 'studyHours',    label: 'DAILY STUDY HOURS',      min: 0,  max: 16,  step: 0.5, unit: 'h'   },
+  { key: 'attentionSpan', label: 'AVG ATTENTION SPAN',     min: 5,  max: 120, step: 5,   unit: 'min' },
+  { key: 'focusRatio',    label: 'PRODUCTIVE APP RATIO',   min: 0,  max: 100, step: 5,   unit: '%'   },
+  { key: 'sleepHours',    label: 'HOURS OF SLEEP / NIGHT', min: 3,  max: 12,  step: 0.5, unit: 'h'   },
+  { key: 'breakFreq',     label: 'BREAKS PER STUDY DAY',   min: 0,  max: 10,  step: 1,   unit: ''    },
+]
 
-  // Weighted scoring model (frontend mock of ML)
-  let score = 0
-  score += clamp((studyHours / 8) * 30, 0, 30)       // study hrs out of 30
-  score += clamp((attentionSpan / 60) * 20, 0, 20)    // attention span out of 20
-  score += clamp((focusRatio / 100) * 20, 0, 20)      // focus ratio out of 20
-  score += clamp((currentGrade / 100) * 15, 0, 15)    // current grade out of 15
-  score += clamp(((sleepHours - 4) / 4) * 10, 0, 10)  // sleep out of 10
-  score += clamp((breakFreq / 4) * 5, 0, 5)           // break frequency out of 5
-
-  const pct = Math.round(clamp(score, 0, 100))
-  const grade =
-    pct >= 90 ? 'A+' :
-    pct >= 80 ? 'A'  :
-    pct >= 70 ? 'B'  :
-    pct >= 60 ? 'C'  :
-    pct >= 50 ? 'D'  : 'F'
-
-  const trend =
-    pct >= 80 ? '↑ ON TRACK — EXCELLENT TRAJECTORY' :
-    pct >= 65 ? '→ STABLE — ROOM TO IMPROVE'         :
-                '↓ AT RISK — INTERVENTION REQUIRED'
-
-  const tips = []
-  if (studyHours < 4)    tips.push('Increase daily study hours (target: 4–6h/day).')
-  if (attentionSpan < 30) tips.push('Work on sustained focus — try Pomodoro 45/15 splits.')
-  if (focusRatio < 60)   tips.push('Reduce distracting app usage by at least 30%.')
-  if (sleepHours < 7)    tips.push('Aim for 7–9 hours of sleep for optimal memory consolidation.')
-  if (breakFreq < 2)     tips.push('Take regular breaks — fatigue degrades learning efficiency.')
-
-  return { pct, grade, trend, tips }
+const GRADE_COLOR = {
+  'A+': 'var(--fg)', 'A': 'var(--fg)',
+  'B':  '#d4af37',
+  'C':  '#ffb000',
+  'D':  '#cc7733', 'F': '#cc3333',
 }
 
-export default function PredictionPanel({ user }) {
+export default function PredictionPanel() {
   const [inputs, setInputs] = useState({
-    studyHours:   5,
+    studyHours:    5,
     attentionSpan: 40,
-    focusRatio:   70,
-    currentGrade: 75,
-    sleepHours:   7,
-    breakFreq:    2,
+    focusRatio:    70,
+    sleepHours:    7,
+    breakFreq:     2,
   })
-  const [result, setResult] = useState(null)
-  const [ran, setRan] = useState(false)
+  const [mode,    setMode]    = useState('strict')
+  const [result,  setResult]  = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error,   setError]   = useState(null)
+  const debounceRef = useRef(null)
+
+  // Auto-fetch with 400ms debounce whenever inputs or mode change
+  useEffect(() => {
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(fetchPrediction, 400)
+    return () => clearTimeout(debounceRef.current)
+  }, [inputs, mode]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function fetchPrediction() {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/predictions/analyze', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ ...inputs, analysis_mode: mode }),
+      })
+      if (res.status === 503) throw new Error('ML models are warming up — please wait a moment.')
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}))
+        throw new Error(e.detail || `Server error (${res.status})`)
+      }
+      setResult(await res.json())
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const up = (key, val) => setInputs(p => ({ ...p, [key]: parseFloat(val) }))
 
-  const run = () => {
-    setResult(computePrediction(inputs))
-    setRan(true)
-  }
-
-  const sliders = [
-    { key: 'studyHours',    label: 'DAILY STUDY HOURS',     min: 0, max: 16, step: 0.5, unit: 'h' },
-    { key: 'attentionSpan', label: 'AVG ATTENTION SPAN',    min: 5, max: 120, step: 5,  unit: 'min' },
-    { key: 'focusRatio',    label: 'PRODUCTIVE APP RATIO',  min: 0, max: 100, step: 5,  unit: '%' },
-    { key: 'currentGrade',  label: 'CURRENT GRADE AVERAGE', min: 0, max: 100, step: 1,  unit: '%' },
-    { key: 'sleepHours',    label: 'HOURS OF SLEEP / NIGHT',min: 3, max: 12,  step: 0.5, unit: 'h' },
-    { key: 'breakFreq',     label: 'BREAKS PER STUDY DAY',  min: 0, max: 10,  step: 1,  unit: '' },
-  ]
+  const gradeColor = result ? (GRADE_COLOR[result.predicted_grade] ?? '#ccaa33') : 'var(--fg)'
+  const ringDash   = result ? `${result.predicted_score * 3.14} 314` : '0 314'
 
   return (
     <div className="subpanel">
       <div className="panel-title">&gt; ACADEMIC PREDICTION ENGINE</div>
-      <p className="muted-text" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>
-        Adjust the sliders to reflect your current habits. The model will estimate your predicted academic outcome.
+
+      {/* Mode selector */}
+      <div className="pred-mode-row">
+        {MODES.map(m => (
+          <button
+            key={m.id}
+            className={`retro-btn pred-mode-btn ${mode === m.id ? 'solid' : ''}`}
+            onClick={() => setMode(m.id)}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+      <p className="muted-text pred-mode-desc">
+        {MODES.find(m => m.id === mode)?.desc}
       </p>
 
       <div className="pred-layout">
-        {/* Inputs */}
+        {/* ── Sliders ── */}
         <div className="retro-card pred-inputs">
           <div className="sp-chart-title muted-text">INPUT PARAMETERS</div>
-          {sliders.map(s => (
+          {SLIDERS.map(s => (
             <div key={s.key} className="pred-slider-row">
               <div className="pred-slider-header">
                 <span className="field-label">{s.label}</span>
@@ -94,59 +120,86 @@ export default function PredictionPanel({ user }) {
                 onChange={e => up(s.key, e.target.value)}
               />
               <div className="pred-slider-range muted-text">
-                <span>{s.min}{s.unit}</span><span>{s.max}{s.unit}</span>
+                <span>{s.min}{s.unit}</span>
+                <span>{s.max}{s.unit}</span>
               </div>
             </div>
           ))}
-          <button className="retro-btn solid" style={{ marginTop: '0.5rem' }} onClick={run}>
-            &gt; RUN PREDICTION MODEL
-          </button>
         </div>
 
-        {/* Result */}
-        {ran && result && (
-          <div className="pred-result-col">
-            <div className="retro-card pred-score-card">
-              <div className="pred-score-label muted-text">PREDICTED OUTCOME SCORE</div>
-              <div className="pred-score-ring">
-                <svg viewBox="0 0 120 120" className="pred-ring-svg">
-                  <circle cx="60" cy="60" r="50" className="ring-track" />
-                  <circle
-                    cx="60" cy="60" r="50"
-                    className="ring-fill"
-                    strokeDasharray={`${result.pct * 3.14} 314`}
-                    strokeDashoffset="0"
-                    transform="rotate(-90 60 60)"
-                  />
-                </svg>
-                <div className="pred-ring-text">
-                  <div className="pred-pct glow-text">{result.pct}</div>
-                  <div className="muted-text" style={{ fontSize: '0.65rem' }}>SCORE</div>
-                </div>
+        {/* ── Result ── */}
+        <div className="pred-result-col">
+          {/* Score ring */}
+          <div className="retro-card pred-score-card">
+            <div className="pred-score-label muted-text">PREDICTED OUTCOME SCORE</div>
+
+            <div className="pred-score-ring">
+              <svg viewBox="0 0 120 120" className="pred-ring-svg">
+                <circle cx="60" cy="60" r="50" className="ring-track" />
+                <circle
+                  cx="60" cy="60" r="50"
+                  className="ring-fill"
+                  style={{ stroke: gradeColor }}
+                  strokeDasharray={ringDash}
+                  strokeDashoffset="0"
+                  transform="rotate(-90 60 60)"
+                />
+              </svg>
+              <div className="pred-ring-text">
+                {loading ? (
+                  <div className="pred-computing muted-text">…</div>
+                ) : result ? (
+                  <>
+                    <div className="pred-pct glow-text">{result.predicted_score}</div>
+                    <div className="muted-text" style={{ fontSize: '0.65rem' }}>SCORE</div>
+                  </>
+                ) : (
+                  <div className="muted-text" style={{ fontSize: '0.65rem' }}>—</div>
+                )}
               </div>
-              <div className="pred-grade glow-text">{result.grade}</div>
-              <div className="pred-trend muted-text">{result.trend}</div>
             </div>
 
-            {result.tips.length > 0 && (
-              <div className="retro-card pred-tips">
-                <div className="sp-chart-title muted-text">RECOMMENDATIONS</div>
-                {result.tips.map((t, i) => (
-                  <div key={i} className="pred-tip">
-                    <span className="muted-text">[{String(i + 1).padStart(2, '0')}]</span> {t}
-                  </div>
-                ))}
+            {result && !loading && (
+              <>
+                <div className="pred-grade" style={{ color: gradeColor }}>
+                  {result.predicted_grade}
+                </div>
+                <div className="pred-mode-badge muted-text">
+                  via {MODES.find(m => m.id === result.analysis_mode)?.label}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Advice block */}
+          <div className="retro-card pred-tips">
+            <div className="sp-chart-title muted-text">
+              {loading ? 'COMPUTING…' : 'ANALYSIS'}
+            </div>
+
+            {error && (
+              <div className="pred-tip" style={{ color: 'var(--fg-dim)' }}>
+                &gt; {error}
               </div>
             )}
 
-            {result.tips.length === 0 && (
-              <div className="retro-card pred-tips">
-                <div className="sp-chart-title muted-text">STATUS</div>
-                <div className="pred-tip glow-text">&gt; OPTIMAL PARAMETERS DETECTED. MAINTAIN CURRENT TRAJECTORY.</div>
+            {!error && loading && (
+              <div className="pred-tip muted-text pred-loading">
+                Running {MODES.find(m => m.id === mode)?.label} model…
+              </div>
+            )}
+
+            {!error && !loading && result && (
+              <pre className="pred-advice">{result.text_advice}</pre>
+            )}
+
+            {!error && !loading && !result && (
+              <div className="pred-tip muted-text">
+                &gt; Adjust sliders to generate your prediction.
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

@@ -9,12 +9,16 @@ from pydantic import BaseModel
 
 from routers.files import router as files_router
 from routers.health import router as health_router
+from routers.predictions import router as predictions_router
+from ml_engine import engine as ml_engine
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Ensure uploads directory exists at startup
     Path("uploads").mkdir(exist_ok=True)
+    Path("models").mkdir(exist_ok=True)
+    # Train / load ML models at startup (blocking but runs once)
+    ml_engine.ensure_ready()
     yield
 
 
@@ -30,6 +34,7 @@ app.add_middleware(
 
 app.include_router(files_router)
 app.include_router(health_router)
+app.include_router(predictions_router)
 
 
 class StudentQuery(BaseModel):

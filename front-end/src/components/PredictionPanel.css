@@ -1,3 +1,41 @@
+/* Mode selector */
+.pred-mode-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+
+.pred-mode-btn {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  padding: 0.35rem 0.8rem;
+}
+
+.pred-mode-desc {
+  font-size: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.pred-mode-badge {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+}
+
+/* Advice pre block */
+.pred-advice {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.72rem;
+  line-height: 1.7;
+  color: var(--fg-dim);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.pred-computing { font-size: 1.6rem; }
+.pred-loading   { font-style: italic; }
+
 .pred-layout {
   display: flex;
   gap: 1.25rem;
