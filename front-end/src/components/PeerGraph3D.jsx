@@ -3,129 +3,98 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import './PeerGraph3D.css'
 
-// ─── ANONYMISED PEER PROFILES ─────────────────────────────────────────────────
-const PEERS = [
-  {
-    id: 1, alias: 'Scholar #1',
-    field: 'Computer Science', year: '3rd Year', yearNum: 3, weeklyHours: 35,
-    outcomeGrade: 'A',
-    avgDailyHours: 6.2, avgSessionMin: 72, sleep: 7.5,
-    avgAttentionMin: 55, avgBreaks: 1.8, focusQualityPct: 82,
-    apps: { obsidian: 1.1, vscode: 4.5, anki: 1.2, notion: 0.9, tiktok: 0.3, discord: 0.5, youtube: 1.0 },
-    sites: { scholar: 'FREQUENT', arxiv: 'FREQUENT', reddit: 'RARE', ytStudy: 'OCCASIONAL' },
-    health: { avgSteps: 9200, avgHR: 68, hrv: 52, activeCal: 480, mindfulMin: 35 },
-  },
-  {
-    id: 2, alias: 'Scholar #2',
-    field: 'Biology', year: '2nd Year', yearNum: 2, weeklyHours: 28,
-    outcomeGrade: 'B+',
-    avgDailyHours: 4.8, avgSessionMin: 55, sleep: 7.0,
-    avgAttentionMin: 42, avgBreaks: 2.3, focusQualityPct: 65,
-    apps: { obsidian: 0, vscode: 0, anki: 2.1, notion: 1.5, tiktok: 0.8, discord: 1.2, youtube: 1.5 },
-    sites: { scholar: 'FREQUENT', arxiv: 'RARE', reddit: 'OCCASIONAL', ytStudy: 'FREQUENT' },
-    health: { avgSteps: 7500, avgHR: 72, hrv: 41, activeCal: 360, mindfulMin: 15 },
-  },
-  {
-    id: 3, alias: 'Scholar #3',
-    field: 'Psychology', year: '1st Year', yearNum: 1, weeklyHours: 15,
-    outcomeGrade: 'C',
-    avgDailyHours: 2.5, avgSessionMin: 32, sleep: 6.0,
-    avgAttentionMin: 24, avgBreaks: 4.1, focusQualityPct: 28,
-    apps: { obsidian: 0, vscode: 0, anki: 0.3, notion: 0.5, tiktok: 3.5, discord: 2.8, youtube: 2.0 },
-    sites: { scholar: 'RARE', arxiv: 'NEVER', reddit: 'FREQUENT', ytStudy: 'RARE' },
-    health: { avgSteps: 4200, avgHR: 82, hrv: 28, activeCal: 210, mindfulMin: 0 },
-  },
-  {
-    id: 4, alias: 'Scholar #4',
-    field: 'Mathematics', year: '4th Year', yearNum: 4, weeklyHours: 42,
-    outcomeGrade: 'A+',
-    avgDailyHours: 7.8, avgSessionMin: 95, sleep: 8.0,
-    avgAttentionMin: 68, avgBreaks: 1.2, focusQualityPct: 92,
-    apps: { obsidian: 1.8, vscode: 2.0, anki: 2.5, notion: 1.2, tiktok: 0.1, discord: 0.3, youtube: 0.5 },
-    sites: { scholar: 'FREQUENT', arxiv: 'FREQUENT', reddit: 'NEVER', ytStudy: 'FREQUENT' },
-    health: { avgSteps: 11000, avgHR: 62, hrv: 68, activeCal: 590, mindfulMin: 60 },
-  },
-  {
-    id: 5, alias: 'Scholar #5',
-    field: 'Economics', year: '2nd Year', yearNum: 2, weeklyHours: 22,
-    outcomeGrade: 'B',
-    avgDailyHours: 3.8, avgSessionMin: 48, sleep: 6.5,
-    avgAttentionMin: 38, avgBreaks: 2.8, focusQualityPct: 55,
-    apps: { obsidian: 0, vscode: 0, anki: 0.8, notion: 2.0, tiktok: 1.5, discord: 1.8, youtube: 2.2 },
-    sites: { scholar: 'OCCASIONAL', arxiv: 'NEVER', reddit: 'FREQUENT', ytStudy: 'OCCASIONAL' },
-    health: { avgSteps: 6100, avgHR: 76, hrv: 35, activeCal: 300, mindfulMin: 10 },
-  },
-  {
-    id: 6, alias: 'Scholar #6',
-    field: 'Engineering', year: '3rd Year', yearNum: 3, weeklyHours: 30,
-    outcomeGrade: 'B+',
-    avgDailyHours: 5.1, avgSessionMin: 61, sleep: 7.0,
-    avgAttentionMin: 47, avgBreaks: 2.1, focusQualityPct: 70,
-    apps: { obsidian: 0.4, vscode: 3.8, anki: 0.9, notion: 1.1, tiktok: 0.6, discord: 0.9, youtube: 1.3 },
-    sites: { scholar: 'FREQUENT', arxiv: 'OCCASIONAL', reddit: 'RARE', ytStudy: 'RARE' },
-    health: { avgSteps: 8300, avgHR: 70, hrv: 45, activeCal: 420, mindfulMin: 20 },
-  },
-  {
-    id: 7, alias: 'Scholar #7',
-    field: 'Physics', year: '4th Year', yearNum: 4, weeklyHours: 44,
-    outcomeGrade: 'A+',
-    avgDailyHours: 8.1, avgSessionMin: 102, sleep: 7.8,
-    avgAttentionMin: 74, avgBreaks: 1.0, focusQualityPct: 95,
-    apps: { obsidian: 2.2, vscode: 1.5, anki: 3.0, notion: 0.8, tiktok: 0.0, discord: 0.2, youtube: 0.4 },
-    sites: { scholar: 'FREQUENT', arxiv: 'FREQUENT', reddit: 'NEVER', ytStudy: 'FREQUENT' },
-    health: { avgSteps: 10500, avgHR: 60, hrv: 72, activeCal: 550, mindfulMin: 70 },
-  },
-  {
-    id: 8, alias: 'Scholar #8',
-    field: 'Law', year: '2nd Year', yearNum: 2, weeklyHours: 38,
-    outcomeGrade: 'B+',
-    avgDailyHours: 5.8, avgSessionMin: 80, sleep: 6.8,
-    avgAttentionMin: 60, avgBreaks: 1.5, focusQualityPct: 74,
-    apps: { obsidian: 2.5, vscode: 0, anki: 1.8, notion: 2.2, tiktok: 0.4, discord: 0.6, youtube: 0.8 },
-    sites: { scholar: 'FREQUENT', arxiv: 'NEVER', reddit: 'OCCASIONAL', ytStudy: 'OCCASIONAL' },
-    health: { avgSteps: 7800, avgHR: 74, hrv: 38, activeCal: 380, mindfulMin: 25 },
-  },
-  {
-    id: 9, alias: 'Scholar #9',
-    field: 'Art & Design', year: '1st Year', yearNum: 1, weeklyHours: 18,
-    outcomeGrade: 'B',
-    avgDailyHours: 3.2, avgSessionMin: 40, sleep: 7.5,
-    avgAttentionMin: 35, avgBreaks: 3.0, focusQualityPct: 50,
-    apps: { obsidian: 0, vscode: 0, anki: 0.2, notion: 1.8, tiktok: 2.0, discord: 1.5, youtube: 2.5 },
-    sites: { scholar: 'RARE', arxiv: 'NEVER', reddit: 'OCCASIONAL', ytStudy: 'FREQUENT' },
-    health: { avgSteps: 8800, avgHR: 66, hrv: 48, activeCal: 440, mindfulMin: 30 },
-  },
-  {
-    id: 10, alias: 'Scholar #10',
-    field: 'Medicine', year: '3rd Year', yearNum: 3, weeklyHours: 50,
-    outcomeGrade: 'A',
-    avgDailyHours: 8.5, avgSessionMin: 90, sleep: 6.5,
-    avgAttentionMin: 65, avgBreaks: 1.4, focusQualityPct: 88,
-    apps: { obsidian: 1.5, vscode: 0, anki: 4.2, notion: 1.0, tiktok: 0.2, discord: 0.4, youtube: 0.6 },
-    sites: { scholar: 'FREQUENT', arxiv: 'OCCASIONAL', reddit: 'RARE', ytStudy: 'OCCASIONAL' },
-    health: { avgSteps: 9500, avgHR: 65, hrv: 58, activeCal: 500, mindfulMin: 45 },
-  },
-  {
-    id: 11, alias: 'Scholar #11',
-    field: 'Philosophy', year: '2nd Year', yearNum: 2, weeklyHours: 20,
-    outcomeGrade: 'C+',
-    avgDailyHours: 3.0, avgSessionMin: 38, sleep: 8.5,
-    avgAttentionMin: 30, avgBreaks: 3.5, focusQualityPct: 40,
-    apps: { obsidian: 0.8, vscode: 0, anki: 0.4, notion: 1.2, tiktok: 1.8, discord: 2.0, youtube: 3.0 },
-    sites: { scholar: 'OCCASIONAL', arxiv: 'NEVER', reddit: 'FREQUENT', ytStudy: 'OCCASIONAL' },
-    health: { avgSteps: 5500, avgHR: 78, hrv: 31, activeCal: 260, mindfulMin: 5 },
-  },
-  {
-    id: 12, alias: 'Scholar #12',
-    field: 'Data Science', year: '4th Year', yearNum: 4, weeklyHours: 40,
-    outcomeGrade: 'A',
-    avgDailyHours: 7.2, avgSessionMin: 85, sleep: 7.2,
-    avgAttentionMin: 62, avgBreaks: 1.6, focusQualityPct: 85,
-    apps: { obsidian: 1.0, vscode: 5.0, anki: 1.5, notion: 1.4, tiktok: 0.2, discord: 0.7, youtube: 1.2 },
-    sites: { scholar: 'FREQUENT', arxiv: 'FREQUENT', reddit: 'RARE', ytStudy: 'FREQUENT' },
-    health: { avgSteps: 9800, avgHR: 67, hrv: 55, activeCal: 510, mindfulMin: 40 },
-  },
+// ─── DB ROW → PEER OBJECT ─────────────────────────────────────────────────────
+// Maps the exact column names returned by GET /api/peers (cohort_students table)
+// to the shape expected by the 3-D graph.
+//
+// Columns from DB:  id, study_hours, attention_span, focus_ratio,
+//                   sleep_hours, break_freq, current_grade
+//
+// Fields not stored in the DB (field, year, apps, sites, health) are derived
+// deterministically from the peer's id so the visualisation is stable across
+// page loads while still reflecting the real study metrics where possible.
+
+const _FIELDS = [
+  'Computer Science', 'Mathematics', 'Physics', 'Engineering',
+  'Biology', 'Psychology', 'Economics', 'Medicine',
+  'Data Science', 'Law', 'Chemistry', 'Philosophy',
 ]
+const _YEARS = [
+  { year: '1st Year', yearNum: 1 },
+  { year: '2nd Year', yearNum: 2 },
+  { year: '3rd Year', yearNum: 3 },
+  { year: '4th Year', yearNum: 4 },
+]
+const _FREQ = ['FREQUENT', 'OCCASIONAL', 'RARE', 'NEVER']
+
+// Deterministic pseudo-random in [0, 1) — seeded by (id, slot)
+function _dr(id, slot) {
+  const x = Math.sin(id * 127.1 + slot * 311.7) * 43758.5453
+  return x - Math.floor(x)
+}
+
+function transformPeer(row, index) {
+  // ── DB columns (exact names) ──────────────────────────────────────────────
+  const { id, study_hours, attention_span, focus_ratio,
+          sleep_hours, break_freq, current_grade } = row
+
+  const toGrade = s =>
+    s >= 90 ? 'A+' : s >= 80 ? 'A' : s >= 70 ? 'B+' :
+    s >= 60 ? 'B'  : s >= 50 ? 'C+' : 'C'
+
+  const f = focus_ratio / 100  // 0–1 focus fraction
+
+  // Academic sites: high focus → index 0 (FREQUENT)
+  // Distraction sites: low focus → index 0 (FREQUENT)
+  const acIdx = n => Math.max(0, Math.min(3, Math.round((1 - f) * 3 + _dr(id, n) - 0.5)))
+  const dtIdx = n => Math.max(0, Math.min(3, Math.round(      f  * 3 + _dr(id, n) - 0.5)))
+
+  return {
+    id,
+    alias:           `Scholar #${index + 1}`,
+    field:           _FIELDS[id % _FIELDS.length],
+    year:            _YEARS[id % 4].year,
+    yearNum:         _YEARS[id % 4].yearNum,
+    weeklyHours:     Math.round(study_hours * 7),
+    outcomeGrade:    toGrade(current_grade),
+
+    // ── Core metrics — directly from DB columns ───────────────────────────
+    avgDailyHours:   parseFloat(study_hours.toFixed(1)),
+    avgSessionMin:   Math.round(attention_span * 1.2),   // session ≈ 1.2× span
+    sleep:           parseFloat(sleep_hours.toFixed(1)),
+    avgAttentionMin: parseFloat(attention_span.toFixed(1)),
+    avgBreaks:       parseFloat(break_freq.toFixed(1)),
+    focusQualityPct: Math.round(focus_ratio),
+
+    // ── App usage — scaled by focus_ratio ────────────────────────────────
+    apps: {
+      obsidian: parseFloat((f * 2.0 * _dr(id, 1)).toFixed(1)),
+      vscode:   parseFloat((f * 5.0 * _dr(id, 2)).toFixed(1)),
+      anki:     parseFloat((f * 3.0 * _dr(id, 3)).toFixed(1)),
+      notion:   parseFloat((0.5 + _dr(id, 4) * 1.5).toFixed(1)),
+      tiktok:   parseFloat(((1 - f) * 3.0 * _dr(id, 5)).toFixed(1)),
+      discord:  parseFloat(((1 - f * 0.7) * 1.2 * _dr(id, 6)).toFixed(1)),
+      youtube:  parseFloat((0.5 + _dr(id, 7) * 2.0).toFixed(1)),
+    },
+
+    // ── Website frequency — academic sites correlate with high focus ──────
+    sites: {
+      scholar: _FREQ[acIdx(8)],
+      arxiv:   _FREQ[acIdx(9)],
+      reddit:  _FREQ[dtIdx(10)],
+      ytStudy: _FREQ[Math.max(0, Math.min(3, Math.round(_dr(id, 11) * 3)))],
+    },
+
+    // ── Health — sleep & study hours as base, id-seeded variance ─────────
+    health: {
+      avgSteps:   Math.round(4000 + sleep_hours * 600  + _dr(id, 12) * 3000),
+      avgHR:      Math.round(58   + (1 - f) * 18       + _dr(id, 13) * 8),
+      hrv:        Math.round(22   + f * 45              + _dr(id, 14) * 12),
+      activeCal:  Math.round(150  + study_hours * 35   + _dr(id, 15) * 180),
+      mindfulMin: Math.round(f * 55                    + _dr(id, 16) * 18),
+    },
+  }
+}
 
 // ─── RADIUS SCALING ───────────────────────────────────────────────────────────
 const LEAF_SCALE = 0.030
@@ -609,6 +578,20 @@ function PeerDetail({ peer, onBack }) {
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────────
 export default function PeerGraph3D() {
   const [focusedPeer, setFocusedPeer] = useState(null)
+  const [peers,       setPeers]       = useState([])
+  const [loading,     setLoading]     = useState(true)
+  const [error,       setError]       = useState(null)
+
+  useEffect(() => {
+    fetch('/api/peers')
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
+      })
+      .then(data => setPeers((data.peers || []).map(transformPeer)))
+      .catch(e  => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [])
 
   if (focusedPeer) {
     return <PeerDetail peer={focusedPeer} onBack={() => setFocusedPeer(null)} />
@@ -618,10 +601,18 @@ export default function PeerGraph3D() {
     <div className="subpanel peer-panel">
       <div className="panel-title">❂ PEER BENCHMARK</div>
       <p className="muted-text" style={{ fontSize: '0.8rem', marginBottom: '1.2rem' }}>
-        Anonymised study profiles. Hover to spin · click to expand.
+        Anonymised cohort profiles from the database. Hover to spin · click to expand.
       </p>
+
+      {loading && (
+        <div className="muted-text" style={{ fontSize: '0.8rem' }}>&gt; Loading peers…</div>
+      )}
+      {error && (
+        <div style={{ color: '#cc4444', fontSize: '0.8rem' }}>&gt; Could not load peers: {error}</div>
+      )}
+
       <div className="peer-grid">
-        {PEERS.map(p => (
+        {peers.map(p => (
           <MiniPeerGraph key={p.id} peer={p} onFocus={setFocusedPeer} />
         ))}
       </div>
