@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import './SubPanel.css'
+import './FileImport.css'
+import './HealthImport.css'
 
 const CATEGORIES = {
   Productive: ['VS Code', 'Notion', 'Anki', 'Zotero', 'Word', 'Excel', 'Scholar Docs'],
@@ -16,16 +18,98 @@ function getCategory(app) {
   return 'Neutral'
 }
 
+function getSessionId() {
+  let id = sessionStorage.getItem('sv_session_id')
+  if (!id) { id = crypto.randomUUID(); sessionStorage.setItem('sv_session_id', id) }
+  return id
+}
+
+function fmtTime(iso) {
+  return iso ? new Date(iso).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : '—'
+}
+
 export default function AppUsage({ logs, setLogs }) {
   const [form, setForm] = useState({ app: '', hours: '', date: new Date().toISOString().slice(0,10) })
   const [showForm, setShowForm] = useState(false)
 
+  // Import state
+  const [imports,  setImports]  = useState([])
+  const [dragging, setDragging] = useState(false)
+  const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState(null)
+  const [expanded, setExpanded] = useState(null)
+  const [detail,   setDetail]   = useState(null)
+  const inputRef  = useRef()
+  const sessionId = getSessionId()
+
+  useEffect(() => { fetchImports() }, [])
+
+  async function fetchImports() {
+    try {
+      const res  = await fetch(`/api/activity/app-usage?session_id=${sessionId}`)
+      if (!res.ok) return
+      const data = await res.json()
+      setImports(data.imports || [])
+    } catch { /* backend offline */ }
+  }
+
+  async function submitJson(text) {
+    setError(null)
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/activity/app-usage?session_id=${sessionId}`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    text,
+      })
+      if (res.status === 413) throw new Error('Payload too large (max 5 MB)')
+      if (res.status === 422) {
+        const e = await res.json().catch(() => ({}))
+        throw new Error(e.detail || 'Invalid app usage JSON format')
+      }
+      if (!res.ok) throw new Error(`Server error (${res.status})`)
+      await fetchImports()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleFile = async file => {
+    if (!file.name.endsWith('.json')) { setError('Only .json files are accepted'); return }
+    const text = await file.text()
+    submitJson(text)
+  }
+
+  const onDrop = e => {
+    e.preventDefault(); setDragging(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleFile(file)
+  }
+
+  const removeImport = async id => {
+    try { await fetch(`/api/activity/app-usage/${id}`, { method: 'DELETE' }) } catch { /* best-effort */ }
+    setImports(prev => prev.filter(i => i.import_id !== id))
+    if (expanded === id) { setExpanded(null); setDetail(null) }
+  }
+
+  const toggleDetail = async id => {
+    if (expanded === id) { setExpanded(null); setDetail(null); return }
+    setExpanded(id); setDetail(null)
+    try {
+      const res  = await fetch(`/api/activity/app-usage/${id}`)
+      const data = await res.json()
+      setDetail(data)
+    } catch { setDetail({ error: 'Could not load detail' }) }
+  }
+
+  // Existing manual stats
   const total        = logs.reduce((s, l) => s + l.hours, 0)
   const productive   = logs.filter(l => l.category === 'Productive').reduce((s, l) => s + l.hours, 0)
   const distracting  = logs.filter(l => l.category === 'Distracting').reduce((s, l) => s + l.hours, 0)
   const focusRatio   = total ? Math.round((productive / total) * 100) : 0
 
-  // Per-app aggregation
   const byApp = Object.values(
     logs.reduce((acc, l) => {
       if (!acc[l.app]) acc[l.app] = { app: l.app, hours: 0, category: l.category }
@@ -50,6 +134,89 @@ export default function AppUsage({ logs, setLogs }) {
 
   return (
     <div className="subpanel">
+
+      {/* ── JSON Import Section ─────────────────────────────────────── */}
+      <div className="panel-title">&gt; APP USAGE IMPORT</div>
+      <p className="muted-text" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>
+        Import app usage data from a JSON file to seed the Prediction Engine.
+      </p>
+
+      <div
+        className={`fi-dropzone ${dragging ? 'dragging' : ''} ${loading ? 'fi-uploading' : ''}`}
+        onDragOver={e => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+        onClick={() => !loading && inputRef.current.click()}
+      >
+        <input
+          ref={inputRef} type="file" accept=".json"
+          style={{ display: 'none' }}
+          onChange={e => e.target.files[0] && handleFile(e.target.files[0])}
+        />
+        <div className="fi-drop-icon">{loading ? '…' : dragging ? '▼' : '◈'}</div>
+        <div className="fi-drop-text">
+          {loading ? 'IMPORTING…' : dragging ? 'DROP FILE HERE' : 'DRAG & DROP .JSON  //  CLICK TO BROWSE'}
+        </div>
+        <div className="fi-drop-sub muted-text">App usage JSON format</div>
+      </div>
+
+      {error && <div className="fi-error muted-text">&gt; {error}</div>}
+
+      <div className="hi-list" style={{ marginBottom: '1.5rem' }}>
+        {imports.map(imp => (
+          <div key={imp.import_id} className="retro-card hi-import-row">
+            <div className="hi-import-main">
+              <div className="hi-import-meta">
+                <span className="hi-import-ts">{fmtTime(imp.sync_timestamp || imp.imported_at)}</span>
+                <span className="muted-text hi-import-count">{imp.log_count} logs</span>
+                {imp.client_version && (
+                  <span className="muted-text hi-import-ver">v{imp.client_version}</span>
+                )}
+              </div>
+              <div className="hi-import-actions">
+                <button className="retro-btn hi-detail-btn" onClick={() => toggleDetail(imp.import_id)}>
+                  {expanded === imp.import_id ? 'HIDE' : 'DETAIL'}
+                </button>
+                <button className="sp-delete muted-text" onClick={() => removeImport(imp.import_id)}>✕</button>
+              </div>
+            </div>
+
+            {expanded === imp.import_id && (
+              <div className="hi-detail">
+                {!detail && <div className="muted-text" style={{ fontSize: '0.78rem' }}>Loading…</div>}
+                {detail?.error && <div className="muted-text">{detail.error}</div>}
+                {detail?.entries && (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem' }}>
+                    <thead>
+                      <tr className="muted-text" style={{ borderBottom: '1px solid var(--border)' }}>
+                        <th style={{ textAlign: 'left', padding: '0.2rem 0.4rem' }}>APP</th>
+                        <th style={{ textAlign: 'left', padding: '0.2rem 0.4rem' }}>CATEGORY</th>
+                        <th style={{ textAlign: 'right', padding: '0.2rem 0.4rem' }}>MINS</th>
+                        <th style={{ textAlign: 'right', padding: '0.2rem 0.4rem' }}>DATE</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.entries.map((e, i) => (
+                        <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '0.2rem 0.4rem', color: 'var(--fg)' }}>{e.app_name}</td>
+                          <td style={{ padding: '0.2rem 0.4rem', color: catColor(e.category) }}>{e.category}</td>
+                          <td style={{ padding: '0.2rem 0.4rem', textAlign: 'right' }}>{e.duration_mins}</td>
+                          <td style={{ padding: '0.2rem 0.4rem', textAlign: 'right' }}>{e.logged_date}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+        {imports.length === 0 && !loading && (
+          <div className="sp-empty muted-text">&gt; No app usage data imported yet.</div>
+        )}
+      </div>
+
+      {/* ── Manual Entry Section ────────────────────────────────────── */}
       <div className="panel-title">&gt; APP USAGE MONITOR</div>
 
       {/* Summary */}

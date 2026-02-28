@@ -343,6 +343,56 @@ CREATE TABLE health_metrics (
 CREATE INDEX idx_health_metrics_import ON health_metrics(import_id);
 CREATE INDEX idx_health_metrics_type   ON health_metrics(type);
 
+-- ============================================================
+--  SECTION 11 — APP USAGE IMPORT
+-- ============================================================
+
+CREATE TABLE app_usage_imports (
+    import_id      UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id     VARCHAR(64) NOT NULL,
+    sync_timestamp TIMESTAMP,
+    client_version VARCHAR(20),
+    log_count      INT         DEFAULT 0,
+    imported_at    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE app_usage_entries (
+    entry_id      SERIAL      PRIMARY KEY,
+    import_id     UUID        NOT NULL REFERENCES app_usage_imports(import_id) ON DELETE CASCADE,
+    app_name      VARCHAR(100) NOT NULL,
+    category      VARCHAR(50),   -- 'Productive' | 'Neutral' | 'Distracting'
+    duration_mins INT         NOT NULL,
+    logged_date   DATE        NOT NULL
+);
+
+CREATE INDEX idx_app_usage_entries_import ON app_usage_entries(import_id);
+
+-- ============================================================
+--  SECTION 12 — STUDY SESSION IMPORT
+-- ============================================================
+
+CREATE TABLE study_imports (
+    import_id      UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id     VARCHAR(64) NOT NULL,
+    sync_timestamp TIMESTAMP,
+    client_version VARCHAR(20),
+    session_count  INT         DEFAULT 0,
+    imported_at    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE study_entries (
+    entry_id      SERIAL      PRIMARY KEY,
+    import_id     UUID        NOT NULL REFERENCES study_imports(import_id) ON DELETE CASCADE,
+    started_at    TIMESTAMP   NOT NULL,
+    ended_at      TIMESTAMP   NOT NULL,
+    duration_mins INT         NOT NULL,
+    subject_tag   VARCHAR(100),
+    breaks_taken  INT         DEFAULT 0,
+    notes         TEXT
+);
+
+CREATE INDEX idx_study_entries_import ON study_entries(import_id);
+
 -- 8.3  Improvement recommendations  (generated from XAI output)
 CREATE TABLE improvement_recommendations (
     rec_id          SERIAL    PRIMARY KEY,

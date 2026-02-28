@@ -68,24 +68,120 @@ async def get_baseline(session_id: str = Query(...)):
     has_grades  = bool(grade_counts and int(grade_counts["grade_count"]) > 0)
     grade_count = int(grade_counts["grade_count"]) if grade_counts else 0
 
+    # ── Focus ratio — productive mins / total mins from app_usage_entries ────
+    focus_row = await fetch_one(
+        """
+        SELECT ROUND(
+            SUM(CASE WHEN ae.category='Productive' THEN ae.duration_mins ELSE 0 END) * 100.0
+            / NULLIF(SUM(ae.duration_mins), 0), 1) AS focus_ratio
+        FROM app_usage_entries ae
+        JOIN app_usage_imports ai ON ai.import_id = ae.import_id
+        WHERE ai.session_id = %s
+        """,
+        (session_id,),
+    )
+    focus_ratio = (
+        float(focus_row["focus_ratio"])
+        if focus_row and focus_row["focus_ratio"] is not None
+        else None
+    )
+
+    # ── Break frequency — average breaks per study session ────────────────
+    break_row = await fetch_one(
+        """
+        SELECT ROUND(CAST(AVG(se.breaks_taken) AS numeric), 1) AS avg_breaks
+        FROM study_entries se
+        JOIN study_imports si ON si.import_id = se.import_id
+        WHERE si.session_id = %s
+        """,
+        (session_id,),
+    )
+    break_freq = (
+        float(break_row["avg_breaks"])
+        if break_row and break_row["avg_breaks"] is not None
+        else None
+    )
+
+    # ── Attention span — avg uninterrupted focus block (mins) ────────────
+    attention_row = await fetch_one(
+        """
+        SELECT ROUND(CAST(AVG(se.duration_mins::float / (se.breaks_taken + 1)) AS numeric), 0) AS avg_attention
+        FROM study_entries se
+        JOIN study_imports si ON si.import_id = se.import_id
+        WHERE si.session_id = %s
+        """,
+        (session_id,),
+    )
+    attention_span = (
+        float(attention_row["avg_attention"])
+        if attention_row and attention_row["avg_attention"] is not None
+        else None
+    )
+
+    # ── Study hours — average daily study hours ───────────────────────────
+    study_row = await fetch_one(
+        """
+        SELECT ROUND(CAST(AVG(daily_mins) / 60.0 AS numeric), 1) AS avg_daily_hours
+        FROM (
+            SELECT se.started_at::date AS day, SUM(se.duration_mins) AS daily_mins
+            FROM study_entries se
+            JOIN study_imports si ON si.import_id = se.import_id
+            WHERE si.session_id = %s
+            GROUP BY day
+        ) d
+        """,
+        (session_id,),
+    )
+    study_hours = (
+        float(study_row["avg_daily_hours"])
+        if study_row and study_row["avg_daily_hours"] is not None
+        else None
+    )
+
+    # ── App usage source counts ───────────────────────────────────────────
+    app_usage_counts = await fetch_one(
+        """
+        SELECT COUNT(*) AS import_count
+        FROM app_usage_imports
+        WHERE session_id = %s
+        """,
+        (session_id,),
+    )
+    has_app_usage   = bool(app_usage_counts and int(app_usage_counts["import_count"]) > 0)
+    app_usage_count = int(app_usage_counts["import_count"]) if app_usage_counts else 0
+
+    # ── Study session source counts ───────────────────────────────────────
+    study_counts = await fetch_one(
+        """
+        SELECT COUNT(*) AS import_count
+        FROM study_imports
+        WHERE session_id = %s
+        """,
+        (session_id,),
+    )
+    has_study_sessions   = bool(study_counts and int(study_counts["import_count"]) > 0)
+    study_session_count  = int(study_counts["import_count"]) if study_counts else 0
+
     return {
         "baseline": {
             # Each value is the real measured average, or null if not yet available.
             # The frontend uses null to mean "fall back to default slider value".
-            "studyHours":    None,         # source: study_sessions    (not yet populated)
-            "attentionSpan": None,         # source: app data           (not yet connected)
-            "focusRatio":    None,         # source: app_usage_logs     (not yet connected)
+            "studyHours":    study_hours,
+            "attentionSpan": attention_span,
+            "focusRatio":    focus_ratio,
             "sleepHours":    sleep_hours,  # source: health_metrics → sleep_analysis
-            "breakFreq":     None,         # source: study_sessions    (not yet populated)
+            "breakFreq":     break_freq,
         },
         "sources": {
-            "health":        has_health,
-            "files":         has_files,
-            "grades":        has_grades,
-            "healthCount":   health_count,
-            "gradeCount":    grade_count,
-            "appUsage":      False,   # requires browser extension — not yet connected
-            "studySessions": False,   # requires in-app tracking  — not yet connected
-            "cohort":        True,    # always active: 1000 cohort students seeded in DB
+            "health":              has_health,
+            "files":               has_files,
+            "grades":              has_grades,
+            "healthCount":         health_count,
+            "gradeCount":          grade_count,
+            "appUsage":            has_app_usage,
+            "studySessions":       has_study_sessions,
+            "appUsageCount":       app_usage_count,
+            "studySessionCount":   study_session_count,
+            "cohort":              True,    # always active: 1000 cohort students seeded in DB
         },
     }
