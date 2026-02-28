@@ -205,3 +205,140 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# ============================================================
+# NODE / FRONTEND (Vite + React)
+# ============================================================
+node_modules/
+front-end/node_modules/
+front-end/dist/
+front-end/.vite/
+front-end/dist-ssr/
+
+# Vite cache & build artefacts
+*.local
+.vite/
+dist/
+dist-ssr/
+
+# npm / yarn / pnpm / bun lock files (keep one, ignore rest)
+# Uncomment the lock file your project does NOT use:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+# bun.lockb
+
+# Storybook build
+storybook-static/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# ============================================================
+# SECRETS & ENVIRONMENT
+# ============================================================
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+**/secrets/
+
+# ============================================================
+# OS ARTEFACTS
+# ============================================================
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+Icon
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+
+# ============================================================
+# EDITORS & IDEs
+# ============================================================
+
+# JetBrains (PyCharm, WebStorm, etc.)
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# Vim / Neovim
+*.swp
+*.swo
+*.swn
+Session.vim
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+
+# ============================================================
+# LOGS & RUNTIME
+# ============================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.pid
+*.seed
+*.pid.lock
+
+# ============================================================
+# TESTING & COVERAGE
+# ============================================================
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+cypress/screenshots/
+cypress/videos/
+
+# ============================================================
+# DOCKER
+# ============================================================
+# Keep docker-compose.yaml and Dockerfile tracked.
+# Ignore any local override files:
+docker-compose.override.yml
+docker-compose.local.yml
+.docker/
