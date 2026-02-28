@@ -11,9 +11,6 @@
   justify-content: space-between;
   padding: 1rem 2rem;
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 100;
   background: var(--bg);
 }
 
@@ -22,11 +19,6 @@
   font-weight: bold;
   letter-spacing: 0.15em;
   color: var(--fg);
-  text-shadow: 0 0 10px var(--fg);
-}
-
-.logo-bracket {
-  color: var(--fg-dim);
 }
 
 .hero-nav-right {
@@ -41,55 +33,26 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2rem 1rem 3rem;
-  gap: 1.8rem;
+  padding: 3rem 1rem;
+  gap: 1.5rem;
   max-width: 1100px;
   margin: 0 auto;
   width: 100%;
 }
 
-/* ASCII art */
-.hero-ascii {
-  font-size: clamp(0.28rem, 1vw, 0.6rem);
-  line-height: 1.2;
-  color: var(--fg-dim);
-  text-align: center;
-  white-space: pre;
-  overflow: hidden;
-  width: 100%;
-  text-shadow: 0 0 6px var(--fg-dim);
-}
-
-/* Typewriter */
-.hero-tagline-row {
-  display: flex;
-  align-items: center;
-  font-size: clamp(0.9rem, 2.5vw, 1.4rem);
-  letter-spacing: 0.08em;
-  min-height: 2rem;
-}
-
-.hero-prompt {
-  color: var(--fg-muted);
-}
-
-.hero-tagline {
+.hero-title {
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: normal;
+  letter-spacing: 0.06em;
   color: var(--fg);
-  text-shadow: 0 0 8px var(--fg);
 }
 
-.hero-cursor {
-  color: var(--fg);
-  margin-left: 2px;
-}
-
-/* Sub text */
 .hero-sub {
   text-align: center;
   color: var(--fg-dim);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   line-height: 1.7;
-  max-width: 620px;
+  max-width: 580px;
 }
 
 /* CTA buttons */
@@ -103,7 +66,6 @@
 .hero-cta {
   font-size: 0.95rem;
   padding: 0.7rem 2rem;
-  letter-spacing: 0.12em;
 }
 
 /* Features */
@@ -124,12 +86,11 @@
 .feature-icon {
   font-size: 1.4rem;
   color: var(--fg);
-  text-shadow: 0 0 8px var(--fg);
 }
 
 .feature-title {
-  font-size: 0.8rem;
-  letter-spacing: 0.1em;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
   color: var(--fg);
 }
 
@@ -141,15 +102,13 @@
 /* FOOTER */
 .hero-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   padding: 0.8rem 2rem;
   border-top: 1px solid var(--border);
   font-size: 0.72rem;
-  letter-spacing: 0.08em;
 }
 
 @media (max-width: 600px) {
   .hero-nav { padding: 0.8rem 1rem; }
   .hero-nav-right { gap: 0.5rem; }
-  .hero-ascii { display: none; }
 }

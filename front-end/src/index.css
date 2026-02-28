@@ -1,9 +1,8 @@
 /* ============================================================
-   SCHOLARVISION — RETRO THEME SYSTEM
-   Each theme is strictly 2 colours: bg + fg (accent = fg tint)
+   SCHOLARVISION — THEME SYSTEM
    ============================================================ */
 
-/* --- MATRIX (default): electric green on black --- */
+/* --- MATRIX (default): green on black --- */
 :root,
 [data-theme="matrix"] {
   --bg:        #0d0d0d;
@@ -14,14 +13,11 @@
   --fg-muted:  #004d12;
   --border:    #00ff4133;
   --border-hi: #00ff4166;
-  --scan:      rgba(0, 255, 65, 0.03);
   --font-main: 'Courier New', Courier, monospace;
   --radius:    2px;
-  --shadow:    0 0 12px #00ff4155;
-  --shadow-lg: 0 0 32px #00ff4144;
 }
 
-/* --- AMBER: amber on near-black --- */
+/* --- AMBER --- */
 [data-theme="amber"] {
   --bg:        #100800;
   --bg-2:      #1a0f00;
@@ -31,12 +27,9 @@
   --fg-muted:  #663d00;
   --border:    #ffb00033;
   --border-hi: #ffb00066;
-  --scan:      rgba(255, 176, 0, 0.03);
-  --shadow:    0 0 12px #ffb00055;
-  --shadow-lg: 0 0 32px #ffb00044;
 }
 
-/* --- BLUEPRINT: cyan on deep navy --- */
+/* --- BLUEPRINT --- */
 [data-theme="blueprint"] {
   --bg:        #00050f;
   --bg-2:      #000d1a;
@@ -46,12 +39,9 @@
   --fg-muted:  #004455;
   --border:    #00e5ff33;
   --border-hi: #00e5ff66;
-  --scan:      rgba(0, 229, 255, 0.03);
-  --shadow:    0 0 12px #00e5ff55;
-  --shadow-lg: 0 0 32px #00e5ff44;
 }
 
-/* --- IBM: white on classic blue --- */
+/* --- IBM --- */
 [data-theme="ibm"] {
   --bg:        #0000aa;
   --bg-2:      #0000cc;
@@ -61,12 +51,9 @@
   --fg-muted:  #888888;
   --border:    #f0f0f033;
   --border-hi: #f0f0f066;
-  --scan:      rgba(240, 240, 240, 0.02);
-  --shadow:    0 0 12px #f0f0f033;
-  --shadow-lg: 0 0 32px #f0f0f022;
 }
 
-/* --- PHOSPHOR: warm white on deep green --- */
+/* --- PHOSPHOR --- */
 [data-theme="phosphor"] {
   --bg:        #001200;
   --bg-2:      #001a00;
@@ -76,9 +63,6 @@
   --fg-muted:  #4d7a4d;
   --border:    #e8ffe833;
   --border-hi: #e8ffe866;
-  --scan:      rgba(232, 255, 232, 0.03);
-  --shadow:    0 0 12px #e8ffe855;
-  --shadow-lg: 0 0 32px #e8ffe844;
 }
 
 /* ============================================================
@@ -101,23 +85,6 @@ body {
   font-family: var(--font-main, 'Courier New', Courier, monospace);
   min-height: 100vh;
   overflow-x: hidden;
-  transition: background-color 0.4s ease, color 0.4s ease;
-}
-
-/* CRT scanline overlay */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(
-    to bottom,
-    var(--scan) 0px,
-    var(--scan) 1px,
-    transparent 1px,
-    transparent 3px
-  );
-  pointer-events: none;
-  z-index: 9999;
 }
 
 ::selection {
@@ -144,33 +111,13 @@ input, textarea, select {
    ============================================================ */
 .retro-border {
   border: 1px solid var(--border-hi);
-  box-shadow: var(--shadow);
 }
 
 .retro-card {
   background: var(--bg-2);
   border: 1px solid var(--border-hi);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
   padding: 1.5rem;
-  transition: box-shadow 0.2s ease;
-}
-
-.retro-card:hover {
-  box-shadow: var(--shadow-lg);
-}
-
-.blink {
-  animation: blink 1s step-end infinite;
-}
-
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
-}
-
-.glow-text {
-  text-shadow: 0 0 8px var(--fg), 0 0 20px var(--fg-dim);
 }
 
 .dim-text {
@@ -201,12 +148,11 @@ input, textarea, select {
   border-radius: var(--radius);
   font-size: 0.9rem;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s;
 }
 
 .retro-input:focus {
   border-color: var(--fg);
-  box-shadow: 0 0 0 2px var(--fg-muted);
 }
 
 .retro-input::placeholder {
@@ -225,13 +171,12 @@ input, textarea, select {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   border-radius: var(--radius);
-  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .retro-btn:hover {
   background: var(--fg);
   color: var(--bg);
-  box-shadow: var(--shadow);
 }
 
 .retro-btn:active {
