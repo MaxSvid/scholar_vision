@@ -253,28 +253,39 @@ export default function DataGraph3D({ user, studySessions = [], appLogs = [], at
       ))
     })
 
-    // ── Hover ───────────────────────────────────────────────────
-    const raycaster = new THREE.Raycaster()
-    const mouse     = new THREE.Vector2()
-    let hoveredId   = null
+    // ── Hover — screen-space proximity ──────────────────────────
+    const HIT_MIN_PX = 20   // minimum hit radius in screen pixels
+    let hoveredId = null
 
     const onMouseMove = e => {
-      const rect = mount.getBoundingClientRect()
-      mouse.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1
-      mouse.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1
-      raycaster.setFromCamera(mouse, camera)
+      const rect   = mount.getBoundingClientRect()
+      const mx     = e.clientX - rect.left
+      const my     = e.clientY - rect.top
+      const fovRad = camera.fov * Math.PI / 180
+
+      let closest = null, closestDist = Infinity
+      meshes.forEach(mesh => {
+        const ndc = mesh.position.clone().project(camera)
+        if (ndc.z > 1) return
+        const sx    = (ndc.x *  0.5 + 0.5) * rect.width
+        const sy    = (ndc.y * -0.5 + 0.5) * rect.height
+        const camD  = camera.position.distanceTo(mesh.position)
+        const projR = (mesh.geometry.parameters.radius / camD)
+                    * (rect.height / (2 * Math.tan(fovRad / 2)))
+        const hitR  = Math.max(HIT_MIN_PX, projR)
+        const d     = Math.hypot(mx - sx, my - sy)
+        if (d < hitR && d < closestDist) { closestDist = d; closest = mesh }
+      })
 
       if (hoveredId !== null) {
         const prev = meshes.find(m => m.userData.id === hoveredId)
         if (prev) { prev.material.emissiveIntensity = prev.userData.baseEmissive; prev.scale.setScalar(1) }
       }
-      const hits = raycaster.intersectObjects(meshes)
-      if (hits.length > 0) {
-        const mesh = hits[0].object
-        mesh.material.emissiveIntensity = 0.9
-        mesh.scale.setScalar(1.35)
-        hoveredId = mesh.userData.id
-        setTooltip({ visible: true, label: mesh.userData.label, x: e.clientX - rect.left, y: e.clientY - rect.top })
+      if (closest) {
+        closest.material.emissiveIntensity = 0.9
+        closest.scale.setScalar(1.35)
+        hoveredId = closest.userData.id
+        setTooltip({ visible: true, label: closest.userData.label, x: mx, y: my })
         mount.style.cursor = 'pointer'
       } else {
         hoveredId = null
