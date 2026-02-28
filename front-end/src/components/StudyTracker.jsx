@@ -3,13 +3,7 @@ import './SubPanel.css'
 
 const SUBJECTS = ['Mathematics', 'Physics', 'Programming', 'Literature', 'History', 'Chemistry', 'Economics', 'Other']
 
-const INIT_SESSIONS = [
-  { id: 1, subject: 'Mathematics', hours: 2.5, date: '2026-02-27', notes: 'Calculus revision' },
-  { id: 2, subject: 'Programming', hours: 3,   date: '2026-02-26', notes: 'Data structures assignment' },
-]
-
-export default function StudyTracker() {
-  const [sessions, setSessions] = useState(INIT_SESSIONS)
+export default function StudyTracker({ sessions, setSessions }) {
   const [form, setForm] = useState({ subject: '', hours: '', date: today(), notes: '' })
   const [showForm, setShowForm] = useState(false)
 

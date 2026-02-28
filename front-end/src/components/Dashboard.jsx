@@ -17,8 +17,29 @@ const TABS = [
   { id: 'files',       label: 'Files',       icon: '▦' },
 ]
 
+const INIT_STUDY_SESSIONS = [
+  { id: 1, subject: 'Mathematics', hours: 2.5, date: '2026-02-27', notes: 'Calculus revision' },
+  { id: 2, subject: 'Programming', hours: 3,   date: '2026-02-26', notes: 'Data structures assignment' },
+]
+
+const INIT_APP_LOGS = [
+  { id: 1, app: 'VS Code',  hours: 3.5, category: 'Productive',  date: '2026-02-27' },
+  { id: 2, app: 'TikTok',   hours: 1.2, category: 'Distracting', date: '2026-02-27' },
+  { id: 3, app: 'Anki',     hours: 0.8, category: 'Productive',  date: '2026-02-26' },
+  { id: 4, app: 'Netflix',  hours: 2.0, category: 'Distracting', date: '2026-02-26' },
+]
+
+const INIT_ATT_SESSIONS = [
+  { id: 1, duration: 45, breaks: 2, quality: 'High',   date: '2026-02-27' },
+  { id: 2, duration: 25, breaks: 1, quality: 'Medium', date: '2026-02-26' },
+  { id: 3, duration: 60, breaks: 3, quality: 'High',   date: '2026-02-25' },
+]
+
 export default function Dashboard({ user, onLogout }) {
   const [tab, setTab] = useState('overview')
+  const [studySessions, setStudySessions] = useState(INIT_STUDY_SESSIONS)
+  const [appLogs,       setAppLogs]       = useState(INIT_APP_LOGS)
+  const [attSessions,   setAttSessions]   = useState(INIT_ATT_SESSIONS)
 
   const displayName = user?.firstName
     ? `${user.firstName} ${user.lastName}`
@@ -58,11 +79,18 @@ export default function Dashboard({ user, onLogout }) {
         {/* MAIN CONTENT */}
         <main className="dash-content">
           {tab === 'overview'   && <OverviewPanel user={user} setTab={setTab} />}
-          {tab === 'study'      && <StudyTracker />}
-          {tab === 'apps'       && <AppUsage />}
-          {tab === 'attention'  && <AttentionSpan />}
+          {tab === 'study'      && <StudyTracker sessions={studySessions} setSessions={setStudySessions} />}
+          {tab === 'apps'       && <AppUsage logs={appLogs} setLogs={setAppLogs} />}
+          {tab === 'attention'  && <AttentionSpan sessions={attSessions} setSessions={setAttSessions} />}
           {tab === 'prediction' && <PredictionPanel user={user} />}
-          {tab === 'graph3d'    && <DataGraph3D user={user} />}
+          {tab === 'graph3d'    && (
+            <DataGraph3D
+              user={user}
+              studySessions={studySessions}
+              appLogs={appLogs}
+              attSessions={attSessions}
+            />
+          )}
           {tab === 'files'      && <FileImport />}
         </main>
       </div>

@@ -21,7 +21,6 @@
 .fi-drop-icon {
   font-size: 2.5rem;
   color: var(--fg-dim);
-  text-shadow: 0 0 10px var(--fg-dim);
   transition: color 0.2s;
 }
 

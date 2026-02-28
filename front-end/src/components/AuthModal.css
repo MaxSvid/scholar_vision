@@ -152,7 +152,6 @@
   border-color: var(--fg);
   background: var(--fg);
   color: var(--bg);
-  box-shadow: 0 0 8px var(--fg);
 }
 
 .step-label {

@@ -22,7 +22,6 @@
 .sp-stat-val {
   font-size: 1.6rem;
   color: var(--fg);
-  text-shadow: 0 0 8px var(--fg);
   line-height: 1.1;
 }
 
@@ -74,7 +73,6 @@
 .sp-bar-fill {
   width: 100%;
   background: var(--fg);
-  box-shadow: 0 0 6px var(--fg);
   border-radius: var(--radius) var(--radius) 0 0;
   transition: height 0.4s ease;
   min-height: 2px;

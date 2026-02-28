@@ -9,13 +9,6 @@ const CATEGORIES = {
 
 const PRESET_APPS = [...CATEGORIES.Productive, ...CATEGORIES.Neutral, ...CATEGORIES.Distracting, 'Other']
 
-const INIT_LOGS = [
-  { id: 1, app: 'VS Code',    hours: 3.5, category: 'Productive', date: '2026-02-27' },
-  { id: 2, app: 'TikTok',     hours: 1.2, category: 'Distracting', date: '2026-02-27' },
-  { id: 3, app: 'Anki',       hours: 0.8, category: 'Productive', date: '2026-02-26' },
-  { id: 4, app: 'Netflix',    hours: 2.0, category: 'Distracting', date: '2026-02-26' },
-]
-
 function getCategory(app) {
   for (const [cat, apps] of Object.entries(CATEGORIES)) {
     if (apps.includes(app)) return cat
@@ -23,8 +16,7 @@ function getCategory(app) {
   return 'Neutral'
 }
 
-export default function AppUsage() {
-  const [logs, setLogs] = useState(INIT_LOGS)
+export default function AppUsage({ logs, setLogs }) {
   const [form, setForm] = useState({ app: '', hours: '', date: new Date().toISOString().slice(0,10) })
   const [showForm, setShowForm] = useState(false)
 

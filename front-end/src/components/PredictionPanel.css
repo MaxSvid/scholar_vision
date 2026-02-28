@@ -47,7 +47,6 @@
   height: 14px;
   background: var(--fg);
   border-radius: 0;
-  box-shadow: 0 0 6px var(--fg);
   cursor: pointer;
 }
 
@@ -57,7 +56,6 @@
   background: var(--fg);
   border: none;
   border-radius: 0;
-  box-shadow: 0 0 6px var(--fg);
   cursor: pointer;
 }
 

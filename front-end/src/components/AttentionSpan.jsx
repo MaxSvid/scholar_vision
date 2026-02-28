@@ -1,16 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import './SubPanel.css'
 
-const INIT_SESSIONS = [
-  { id: 1, duration: 45, breaks: 2, quality: 'High',   date: '2026-02-27' },
-  { id: 2, duration: 25, breaks: 1, quality: 'Medium', date: '2026-02-26' },
-  { id: 3, duration: 60, breaks: 3, quality: 'High',   date: '2026-02-25' },
-]
-
 const QUALITY_OPTS = ['High', 'Medium', 'Low']
 
-export default function AttentionSpan() {
-  const [sessions, setSessions] = useState(INIT_SESSIONS)
+export default function AttentionSpan({ sessions, setSessions }) {
   const [form, setForm] = useState({ duration: '', breaks: '', quality: 'High', date: new Date().toISOString().slice(0,10) })
   const [showForm, setShowForm] = useState(false)
 
