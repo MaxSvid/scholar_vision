@@ -14,9 +14,11 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 1.1  Main user account (source of truth for user_id)
 CREATE TABLE users (
-    user_id    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    email      VARCHAR(255) UNIQUE NOT NULL,
-    created_at TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
+    user_id       UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    email         VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL DEFAULT '',
+    full_name     VARCHAR(255),
+    created_at    TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 1.2  OAuth identities (e.g. Google SSO)
@@ -38,16 +40,20 @@ CREATE TABLE user_identities (
 
 -- 2.1  Human-readable profile fields
 CREATE TABLE student_profiles (
-    user_id          UUID         PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
-    full_name        VARCHAR(255),
-    date_of_birth    DATE,
-    major            VARCHAR(100),                    -- e.g. "Computer Science"
-    university_name  VARCHAR(255),
-    enrollment_year  INT,
-    current_year     INT,                             -- 1 = first year, etc.
-    location         VARCHAR(100),
-    bio              TEXT,
-    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+    user_id               UUID         PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+    full_name             VARCHAR(255),
+    date_of_birth         DATE,
+    major                 VARCHAR(100),                    -- e.g. "Computer Science"
+    university_name       VARCHAR(255),
+    enrollment_year       INT,
+    current_year          INT,                             -- 1 = first year, etc.
+    year_of_study         VARCHAR(50),                     -- e.g. "1st Year"
+    location              VARCHAR(100),
+    bio                   TEXT,
+    study_goal            TEXT,
+    weekly_hours_target   FLOAT,
+    target_gpa            VARCHAR(50),
+    updated_at            TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 2.2  ML feature vector (encoded/numerical — fed directly to RF/DT models)

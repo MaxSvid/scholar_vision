@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useAuth } from '../context/AuthContext'
 import './SubPanel.css'
 import './PredictionPanel.css'
 
@@ -35,35 +36,26 @@ const GRADE_COLOR = {
   'D':  '#cc7733', 'F': '#cc3333',
 }
 
-// Fallback defaults used when the baseline has a null for a given field
 const DEFAULTS = {
   studyHours: 5, attentionSpan: 40, focusRatio: 70, sleepHours: 7, breakFreq: 2,
 }
 
-function getSessionId() {
-  return sessionStorage.getItem('sv_session_id') || ''
-}
-
 export default function PredictionPanel() {
-  // ── Simulated (slider) state ──────────────────────────────────────────────
-  const [currentSimulatedData, setCurrentSimulatedData] = useState({ ...DEFAULTS })
+  const { apiFetch } = useAuth()
 
-  // ── Baseline state (fetched from DB on mount) ─────────────────────────────
-  const [realBaselineData,  setRealBaselineData]  = useState(null)   // null until loaded
+  const [currentSimulatedData, setCurrentSimulatedData] = useState({ ...DEFAULTS })
+  const [realBaselineData,  setRealBaselineData]  = useState(null)
   const [dataSources,       setDataSources]        = useState(null)
   const [baselineLoading,   setBaselineLoading]    = useState(true)
 
-  // ── Prediction state ──────────────────────────────────────────────────────
   const [mode,    setMode]    = useState('strict')
   const [result,  setResult]  = useState(null)
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState(null)
   const debounceRef = useRef(null)
 
-  // ── Fetch real baseline (called on mount + after any new import) ──────────
   const fetchBaseline = useCallback(() => {
-    const sessionId = getSessionId()
-    fetch(`/api/profile/baseline?session_id=${sessionId}`)
+    apiFetch('/api/profile/baseline')
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()
@@ -71,7 +63,6 @@ export default function PredictionPanel() {
       .then(data => {
         setRealBaselineData(data.baseline)
         setDataSources(data.sources)
-        // Seed sliders from real data; keep current value where DB has no value yet
         setCurrentSimulatedData(prev => ({
           studyHours:    data.baseline.studyHours    ?? prev.studyHours,
           attentionSpan: data.baseline.attentionSpan ?? prev.attentionSpan,
@@ -80,20 +71,17 @@ export default function PredictionPanel() {
           breakFreq:     data.baseline.breakFreq     ?? prev.breakFreq,
         }))
       })
-      .catch(() => {})   // baseline is optional — silently fall back to defaults
+      .catch(() => {})
       .finally(() => setBaselineLoading(false))
-  }, []) // setters are stable — no deps needed
+  }, [apiFetch])
 
-  // Fetch on mount
   useEffect(() => { fetchBaseline() }, [fetchBaseline])
 
-  // Re-fetch whenever AppUsage or StudyTracker completes an import
   useEffect(() => {
     window.addEventListener('sv:data-imported', fetchBaseline)
     return () => window.removeEventListener('sv:data-imported', fetchBaseline)
   }, [fetchBaseline])
 
-  // ── Auto-predict with 400ms debounce whenever sliders or mode change ──────
   useEffect(() => {
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(fetchPrediction, 400)
@@ -104,7 +92,7 @@ export default function PredictionPanel() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/predictions/analyze', {
+      const res = await apiFetch('/api/predictions/analyze', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ ...currentSimulatedData, analysis_mode: mode }),
@@ -122,11 +110,9 @@ export default function PredictionPanel() {
     }
   }
 
-  // ── Slider handler ────────────────────────────────────────────────────────
   const up = (key, val) =>
     setCurrentSimulatedData(p => ({ ...p, [key]: parseFloat(val) }))
 
-  // ── Reset handler — overwrites simulated data with real baseline ──────────
   const resetToBaseline = () => {
     if (!realBaselineData) return
     setCurrentSimulatedData({
@@ -141,7 +127,6 @@ export default function PredictionPanel() {
   const gradeColor = result ? (GRADE_COLOR[result.predicted_grade] ?? '#ccaa33') : 'var(--fg)'
   const ringDash   = result ? `${result.predicted_score * 3.14} 314` : '0 314'
 
-  // Which slider fields have a real measured value
   const hasAnyBaseline = realBaselineData &&
     Object.values(realBaselineData).some(v => v != null)
 
@@ -184,7 +169,7 @@ export default function PredictionPanel() {
           </div>
 
           {SLIDERS.map(s => {
-            const realVal  = realBaselineData?.[s.key]
+            const realVal   = realBaselineData?.[s.key]
             const shapEntry = result?.shap_values?.find(sv => sv.feature_key === s.key)
             const impact    = shapEntry?.impact_score
             return (
@@ -224,7 +209,6 @@ export default function PredictionPanel() {
 
         {/* ── Result ── */}
         <div className="pred-result-col">
-          {/* Score ring */}
           <div className="retro-card pred-score-card">
             <div className="pred-score-label muted-text">PREDICTED OUTCOME SCORE</div>
 
@@ -266,7 +250,6 @@ export default function PredictionPanel() {
             )}
           </div>
 
-          {/* Advice block */}
           <div className="retro-card pred-tips">
             <div className="sp-chart-title muted-text">
               {loading ? 'COMPUTING…' : 'ANALYSIS'}
@@ -302,7 +285,6 @@ export default function PredictionPanel() {
         <div className="sp-chart-title muted-text">DATA SOURCES ACTIVE</div>
         <div className="pred-source-list">
 
-          {/* Cohort — always on */}
           <div className="pred-source-row">
             <span className="pred-source-on">✓</span>
             <span className="pred-source-name">COHORT DATABASE</span>
@@ -312,7 +294,6 @@ export default function PredictionPanel() {
             <span className="pred-source-badge muted-text">1 000 STUDENTS</span>
           </div>
 
-          {/* Apple Health */}
           <div className="pred-source-row">
             <span className={dataSources?.health ? 'pred-source-on' : 'pred-source-off'}>
               {dataSources?.health ? '✓' : '○'}
@@ -332,7 +313,6 @@ export default function PredictionPanel() {
             )}
           </div>
 
-          {/* Uploaded files */}
           <div className="pred-source-row">
             <span className={dataSources?.grades ? 'pred-source-on' : 'pred-source-off'}>
               {dataSources?.grades ? '✓' : '○'}
@@ -352,7 +332,6 @@ export default function PredictionPanel() {
             )}
           </div>
 
-          {/* App Usage */}
           <div className="pred-source-row">
             <span className={dataSources?.appUsage ? 'pred-source-on' : 'pred-source-off'}>
               {dataSources?.appUsage ? '✓' : '○'}
@@ -372,7 +351,6 @@ export default function PredictionPanel() {
             )}
           </div>
 
-          {/* Study Sessions */}
           <div className="pred-source-row">
             <span className={dataSources?.studySessions ? 'pred-source-on' : 'pred-source-off'}>
               {dataSources?.studySessions ? '✓' : '○'}

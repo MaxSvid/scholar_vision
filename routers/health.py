@@ -2,18 +2,19 @@
 Apple Health import router.
 
 POST   /api/health/import          – import a Health JSON payload
-GET    /api/health/imports         – list all imports for a session
+GET    /api/health/imports         – list all imports for authenticated user
 GET    /api/health/imports/{id}    – import detail + metrics
 DELETE /api/health/imports/{id}    – delete import and its metrics
-GET    /api/health/metrics/summary – aggregated counts by type for a session
+GET    /api/health/metrics/summary – aggregated counts by type
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from database.execute import execute, execute_returning, fetch_all, fetch_one
 from parsers.health_parser import parse_health_json, summarise
+from security import get_current_user
 
 router = APIRouter(prefix="/api/health", tags=["health"])
 
@@ -25,7 +26,7 @@ MAX_BODY_BYTES = 10 * 1024 * 1024  # 10 MB
 @router.post("/import")
 async def import_health(
     request:    Request,
-    session_id: str = Query(...),
+    session_id: str = Depends(get_current_user),
 ):
     content = await request.body()
 
@@ -40,7 +41,6 @@ async def import_health(
     if not result.metrics:
         raise HTTPException(422, "No valid metrics found in payload")
 
-    # Insert import record
     row = await execute_returning(
         """
         INSERT INTO health_imports
@@ -59,7 +59,6 @@ async def import_health(
 
     import_id = row["import_id"]
 
-    # Bulk-insert metrics
     for m in result.metrics:
         await execute(
             """
@@ -80,18 +79,18 @@ async def import_health(
         )
 
     return {
-        "import_id":     str(import_id),
-        "metric_count":  len(result.metrics),
+        "import_id":      str(import_id),
+        "metric_count":   len(result.metrics),
         "sync_timestamp": result.sync_timestamp,
-        "summary":       summarise(result),
-        "imported_at":   str(row["imported_at"]),
+        "summary":        summarise(result),
+        "imported_at":    str(row["imported_at"]),
     }
 
 
 # ── List imports ──────────────────────────────────────────────────────────────
 
 @router.get("/imports")
-async def list_imports(session_id: str = Query(...)):
+async def list_imports(session_id: str = Depends(get_current_user)):
     rows = await fetch_all(
         """
         SELECT import_id, source_user_id, sync_timestamp, client_version,
@@ -108,9 +107,10 @@ async def list_imports(session_id: str = Query(...)):
 # ── Import detail ─────────────────────────────────────────────────────────────
 
 @router.get("/imports/{import_id}")
-async def get_import(import_id: str):
+async def get_import(import_id: str, session_id: str = Depends(get_current_user)):
     row = await fetch_one(
-        "SELECT * FROM health_imports WHERE import_id = %s", (import_id,)
+        "SELECT * FROM health_imports WHERE import_id = %s AND session_id = %s",
+        (import_id, session_id),
     )
     if not row:
         raise HTTPException(404, "Import not found")
@@ -126,7 +126,6 @@ async def get_import(import_id: str):
         (import_id,),
     )
 
-    # Build per-type summary
     summary: dict[str, int] = {}
     for m in metrics:
         summary[m["type"]] = summary.get(m["type"], 0) + 1
@@ -137,9 +136,10 @@ async def get_import(import_id: str):
 # ── Delete import ─────────────────────────────────────────────────────────────
 
 @router.delete("/imports/{import_id}")
-async def delete_import(import_id: str):
+async def delete_import(import_id: str, session_id: str = Depends(get_current_user)):
     row = await fetch_one(
-        "SELECT import_id FROM health_imports WHERE import_id = %s", (import_id,)
+        "SELECT import_id FROM health_imports WHERE import_id = %s AND session_id = %s",
+        (import_id, session_id),
     )
     if not row:
         raise HTTPException(404, "Import not found")
@@ -150,10 +150,10 @@ async def delete_import(import_id: str):
     return {"deleted": import_id}
 
 
-# ── Aggregated summary across all imports for a session ───────────────────────
+# ── Aggregated summary ────────────────────────────────────────────────────────
 
 @router.get("/metrics/summary")
-async def metrics_summary(session_id: str = Query(...)):
+async def metrics_summary(session_id: str = Depends(get_current_user)):
     rows = await fetch_all(
         """
         SELECT hm.type, COUNT(*) AS count,

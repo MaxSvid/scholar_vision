@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 import './SubPanel.css'
 import './FileImport.css'
 
@@ -31,102 +32,63 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-GB')
 }
 
-// Stable session ID persisted across page reloads
-function getSessionId() {
-  let id = sessionStorage.getItem('sv_session_id')
-  if (!id) {
-    id = crypto.randomUUID()
-    sessionStorage.setItem('sv_session_id', id)
-  }
-  return id
-}
-
 export default function FileImport() {
+  const { apiFetch } = useAuth()
   const [files,         setFiles]         = useState([])
   const [dragging,      setDragging]      = useState(false)
   const [editId,        setEditId]        = useState(null)
   const [loading,       setLoading]       = useState(false)
   const [error,         setError]         = useState(null)
-  const [parseResults,  setParseResults]  = useState({})   // file_id → {grades_count, snippets_count}
+  const [parseResults,  setParseResults]  = useState({})
   const [expandedId,    setExpandedId]    = useState(null)
   const [detail,        setDetail]        = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
-  const inputRef  = useRef()
-  const sessionId = getSessionId()
+  const inputRef = useRef()
 
-  useEffect(() => { fetchFiles() }, [])
+  useEffect(() => { fetchFiles() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchFiles() {
-    console.log('[FileImport] Loading existing files for session:', sessionId)
     try {
-      const res = await fetch(`/api/files?session_id=${sessionId}`)
-      if (!res.ok) {
-        console.warn('[FileImport] Failed to load file list — HTTP', res.status)
-        return
-      }
+      const res = await apiFetch('/api/files')
+      if (!res.ok) return
       const data = await res.json()
-      console.log('[FileImport] Loaded', data.files?.length ?? 0, 'file(s) from server')
       setFiles(data.files || [])
-    } catch (e) {
-      console.warn('[FileImport] Backend unreachable — starting with empty list:', e.message)
-    }
+    } catch { /* backend offline */ }
   }
 
   async function uploadFile(f, category = 'Other', notes = '') {
-    const sizeMB = (f.size / 1024 / 1024).toFixed(2)
-    console.log(`[FileImport] Uploading "${f.name}" (${sizeMB} MB, type: ${f.type || 'unknown'})`)
-
     const form = new FormData()
-    form.append('file',       f)
-    form.append('session_id', sessionId)
-    form.append('category',   category)
-    form.append('notes',      notes)
+    form.append('file',     f)
+    form.append('category', category)
+    form.append('notes',    notes)
 
     let res
     try {
-      res = await fetch('/api/files/upload', { method: 'POST', body: form })
+      res = await apiFetch('/api/files/upload', { method: 'POST', body: form })
     } catch (e) {
-      console.error(`[FileImport] Network error uploading "${f.name}":`, e.message)
       throw new Error(`Network error — is the server running?`)
     }
 
-    if (res.status === 413) {
-      console.error(`[FileImport] "${f.name}" rejected — file exceeds 20 MB limit`)
-      throw new Error(`"${f.name}" exceeds the 20 MB limit`)
-    }
+    if (res.status === 413) throw new Error(`"${f.name}" exceeds the 20 MB limit`)
     if (res.status === 415) {
       const ext = f.name.split('.').pop()
-      console.error(`[FileImport] "${f.name}" rejected — unsupported file type: .${ext}`)
       throw new Error(`File type ".${ext}" is not supported`)
     }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
-      const detail = err.detail || `HTTP ${res.status}`
-      console.error(`[FileImport] Upload failed for "${f.name}":`, detail)
-      throw new Error(detail)
+      throw new Error(err.detail || `HTTP ${res.status}`)
     }
 
-    const data = await res.json()
-    const status = data.parse_error
-      ? `parsed with error — ${data.parse_error}`
-      : `parsed OK (${data.grades_count} grade(s), ${data.snippets_count} snippet(s))`
-    console.log(`[FileImport] "${f.name}" uploaded and ${status}`)
-    if (data.parse_error) {
-      console.warn(`[FileImport] Parse warning for "${f.name}":`, data.parse_error)
-    }
-
-    return data
+    return await res.json()
   }
 
   const addFiles = async (fileList) => {
     const fs = Array.from(fileList)
-    console.log(`[FileImport] Starting import of ${fs.length} file(s):`, fs.map(f => f.name))
     setError(null)
     setLoading(true)
     try {
       for (const f of fs) {
         const data = await uploadFile(f)
-        // Cache parse counts from the upload response so they display immediately
         if (data?.file?.file_id != null) {
           setParseResults(prev => ({
             ...prev,
@@ -137,7 +99,6 @@ export default function FileImport() {
           }))
         }
       }
-      console.log('[FileImport] All uploads complete — refreshing file list')
       await fetchFiles()
     } catch (e) {
       setError(e.message)
@@ -149,10 +110,9 @@ export default function FileImport() {
   async function fetchDetail(fileId) {
     setDetailLoading(true)
     try {
-      const res  = await fetch(`/api/files/${fileId}`)
+      const res  = await apiFetch(`/api/files/${fileId}`)
       const data = await res.json()
       setDetail(data)
-      // Also populate counts in case this file was loaded from a previous session
       setParseResults(prev => ({
         ...prev,
         [fileId]: {
@@ -160,9 +120,7 @@ export default function FileImport() {
           snippets_count: data.snippets?.length ?? 0,
         },
       }))
-    } catch (e) {
-      console.error('[FileImport] Failed to fetch detail for', fileId, e.message)
-    } finally {
+    } catch { /* ignore */ } finally {
       setDetailLoading(false)
     }
   }
@@ -185,14 +143,9 @@ export default function FileImport() {
   }
 
   const removeFile = async (fileId) => {
-    console.log('[FileImport] Deleting file:', fileId)
     try {
-      const res = await fetch(`/api/files/${fileId}`, { method: 'DELETE' })
-      if (!res.ok) console.warn('[FileImport] Delete returned HTTP', res.status, 'for', fileId)
-      else console.log('[FileImport] Deleted:', fileId)
-    } catch (e) {
-      console.error('[FileImport] Delete failed for', fileId, '—', e.message)
-    }
+      await apiFetch(`/api/files/${fileId}`, { method: 'DELETE' })
+    } catch { /* best-effort */ }
     setFiles(prev => prev.filter(f => f.file_id !== fileId))
     if (expandedId === fileId) { setExpandedId(null); setDetail(null) }
   }
@@ -363,7 +316,6 @@ export default function FileImport() {
 
                 {!detailLoading && detail && (
                   <>
-                    {/* Available-for-analysis chips */}
                     {(detail.grades?.length > 0 || detail.snippets?.length > 0) && (
                       <div className="fi-avail-row">
                         <span className="fi-avail-label muted-text">AVAILABLE FOR ANALYSIS:</span>
@@ -375,7 +327,6 @@ export default function FileImport() {
                       </div>
                     )}
 
-                    {/* Grades table */}
                     {detail.grades?.length > 0 && (
                       <div className="fi-grades-section">
                         <div className="fi-section-hdr muted-text">
@@ -405,7 +356,6 @@ export default function FileImport() {
                       </div>
                     )}
 
-                    {/* No structured data */}
                     {detail.grades?.length === 0 && (
                       <div className="muted-text fi-no-data">
                         {detail.snippets?.length > 0

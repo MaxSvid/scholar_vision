@@ -3,10 +3,10 @@ Seed a fully-populated test/demo user for ScholarVision.
 
 What this script creates
 ------------------------
-  1. users                — test@scholarvision.com
+  1. users                — test@scholarvision.com  (password: Scholar2024!)
   2. student_profiles     — Alex Chen, CS, University of Edinburgh
   3. cohort_students      — feature vector for Peer Benchmark + Prediction Engine
-  4. health_imports       — 1 import record tied to demo session
+  4. health_imports       — 1 import record tied to demo user
      health_metrics       — 35 records: 7 × sleep, 21 × heart rate, 7 × step count
   5. uploaded_files       — 3 files (transcript PDF, assignment DOCX, notes PDF)
      parsed_grades        — 4 grade records from the transcript
@@ -27,7 +27,6 @@ Usage (from scholar_vision/ root)
 ----------------------------------
   uv run python3 scripts/seed_test_user.py
   uv run python3 scripts/seed_test_user.py --force
-  uv run python3 scripts/seed_test_user.py --session my-custom-id
 """
 
 from __future__ import annotations
@@ -59,11 +58,12 @@ _load_env(ROOT / ".env")
 
 import psycopg  # noqa: E402
 from psycopg.rows import dict_row  # noqa: E402
+from security import hash_password  # noqa: E402
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-DEMO_EMAIL      = "test@scholarvision.com"
-DEFAULT_SESSION = "demo-scholarvision-test-2024"
-BASE_DATE       = date(2024, 11, 4)   # Monday — start of the demo week
+DEMO_EMAIL    = "test@scholarvision.com"
+DEMO_PASSWORD = "Scholar2024!"
+BASE_DATE     = date(2024, 11, 4)   # Monday — start of the demo week
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -91,15 +91,22 @@ def ts(d: date, h: int, m: int, s: int = 0) -> str:
 
 # ── Seeder ────────────────────────────────────────────────────────────────────
 
-def seed(conn: psycopg.Connection, session_id: str) -> None:
+def seed(conn: psycopg.Connection) -> str:
+    """Seed all demo data. Returns the user_id created."""
 
     # ── 1. User ───────────────────────────────────────────────────────────────
     print("  [1/7] Creating user account…")
-    user_id = str(uuid.uuid4())
-    conn.execute(
-        "INSERT INTO users (user_id, email) VALUES (%s, %s)",
-        (user_id, DEMO_EMAIL),
-    )
+    pwd_hash = hash_password(DEMO_PASSWORD)
+    row = conn.execute(
+        """
+        INSERT INTO users (email, password_hash, full_name)
+        VALUES (%s, %s, %s)
+        RETURNING user_id
+        """,
+        (DEMO_EMAIL, pwd_hash, "Alex Chen"),
+    ).fetchone()
+    user_id    = str(row["user_id"])
+    session_id = user_id   # JWT auth: session_id == user_id
 
     # ── 2. Student profile ────────────────────────────────────────────────────
     print("  [2/7] Creating student profile…")
@@ -107,8 +114,9 @@ def seed(conn: psycopg.Connection, session_id: str) -> None:
         """
         INSERT INTO student_profiles
             (user_id, full_name, date_of_birth, major, university_name,
-             enrollment_year, current_year, location, bio)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+             enrollment_year, current_year, location, bio,
+             year_of_study, study_goal, weekly_hours_target, target_gpa)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
             user_id,
@@ -119,14 +127,14 @@ def seed(conn: psycopg.Connection, session_id: str) -> None:
             2022, 3,
             "Edinburgh, UK",
             "Third-year CS student focused on machine learning and software engineering.",
+            "3rd Year",
+            "Graduate with First Class Honours and secure a ML research position.",
+            40.0,
+            "First Class",
         ),
     )
 
     # ── 3. Cohort entry ───────────────────────────────────────────────────────
-    # These values represent the student's broader profile (not just the demo
-    # week).  The grade (74.5) is consistent with the cohort generator formula:
-    #   studyHours*3.2 + attentionSpan*0.18 + focusRatio*0.28
-    #   + sleepHours*2.2 + breakFreq*0.6 − 15 + ~12 noise ≈ 74
     print("  [3/7] Inserting cohort entry…")
     conn.execute(
         """
@@ -139,22 +147,19 @@ def seed(conn: psycopg.Connection, session_id: str) -> None:
     )
 
     # ── 4. Apple Health metrics ───────────────────────────────────────────────
-    # 35 total: 7 sleep + 21 heart-rate + 7 step-count
     print("  [4/7] Inserting Apple Health metrics (35 records)…")
 
     metrics: list[dict] = []
 
-    # Sleep — one record per night (start: evening of day-before, end: morning)
-    # value_num = hours slept; avg across 7 nights ≈ 7.57 h
+    # Sleep — one record per night
     _sleep = [
-        # (start_day, end_day,  s_h, s_m,  e_h, e_m,   hrs)
-        (day(-1), day(0),  22, 30,  6, 15, 7.75),   # Nov 3 → 4
-        (day(0),  day(1),  23,  0,  6, 45, 7.75),   # Nov 4 → 5
-        (day(1),  day(2),  22, 15,  6,  0, 7.75),   # Nov 5 → 6
-        (day(2),  day(3),  23, 30,  6, 30, 7.0),    # Nov 6 → 7
-        (day(3),  day(4),  22,  0,  5, 45, 7.75),   # Nov 7 → 8
-        (day(4),  day(5),  23, 45,  7,  0, 7.25),   # Nov 8 → 9
-        (day(5),  day(6),  22, 30,  6, 15, 7.75),   # Nov 9 → 10
+        (day(-1), day(0),  22, 30,  6, 15, 7.75),
+        (day(0),  day(1),  23,  0,  6, 45, 7.75),
+        (day(1),  day(2),  22, 15,  6,  0, 7.75),
+        (day(2),  day(3),  23, 30,  6, 30, 7.0),
+        (day(3),  day(4),  22,  0,  5, 45, 7.75),
+        (day(4),  day(5),  23, 45,  7,  0, 7.25),
+        (day(5),  day(6),  22, 30,  6, 15, 7.75),
     ]
     for s_d, e_d, sh, sm, eh, em, hrs in _sleep:
         metrics.append({
@@ -165,7 +170,7 @@ def seed(conn: psycopg.Connection, session_id: str) -> None:
             "source_device": "Apple Watch Series 9",
         })
 
-    # Heart rate — 3 readings per day (morning / midday / evening)
+    # Heart rate — 3 readings per day
     _hr = [
         (0, [(7, 10, 62), (12, 30, 74), (20, 15, 67)]),
         (1, [(7, 20, 60), (13,  0, 72), (20, 45, 65)]),
@@ -200,12 +205,12 @@ def seed(conn: psycopg.Connection, session_id: str) -> None:
     conn.execute(
         """
         INSERT INTO health_imports
-            (import_id, user_id, session_id, source_user_id,
+            (import_id, session_id, source_user_id,
              sync_timestamp, client_version, metric_count)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s)
         """,
         (
-            health_import_id, user_id, session_id,
+            health_import_id, session_id,
             "apple_health_alex_chen",
             "2024-11-10 20:00:00", "2.1.0", len(metrics),
         ),
@@ -215,12 +220,12 @@ def seed(conn: psycopg.Connection, session_id: str) -> None:
         conn.execute(
             """
             INSERT INTO health_metrics
-                (import_id, user_id, type, data_class, value_num, value_cat,
+                (import_id, type, data_class, value_num, value_cat,
                  unit, start_time, end_time, source_device, was_user_entered)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
-                health_import_id, user_id,
+                health_import_id,
                 m["type"], m["data_class"], m["value_num"], m["value_cat"],
                 m["unit"], m["start_time"], m["end_time"],
                 m["source_device"], False,
@@ -230,18 +235,17 @@ def seed(conn: psycopg.Connection, session_id: str) -> None:
     # ── 5. Uploaded files + parsed grades ────────────────────────────────────
     print("  [5/7] Inserting uploaded files and parsed grades…")
 
-    # — Semester 1 Transcript (PDF, fully parsed, has 4 grade records)
     transcript_id     = str(uuid.uuid4())
     transcript_stored = f"{uuid.uuid4()}.pdf"
     conn.execute(
         """
         INSERT INTO uploaded_files
-            (file_id, user_id, session_id, original_name, stored_name,
+            (file_id, session_id, original_name, stored_name,
              file_type, file_size, category, parse_status, storage_path, raw_text)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
-            transcript_id, user_id, session_id,
+            transcript_id, session_id,
             "Semester_1_Transcript.pdf", transcript_stored,
             "pdf", 142_560, "Grades", "done",
             f"uploads/{transcript_stored}",
@@ -257,7 +261,6 @@ def seed(conn: psycopg.Connection, session_id: str) -> None:
     )
 
     _grades = [
-        # (course_name,          code,      letter, score, max,   pct,  semester)
         ("Mathematics 101",     "MATH101",  "A",    85.0, 100.0,  85.0, "Semester 1 2024"),
         ("Computer Science 101","CS101",    "A+",   92.0, 100.0,  92.0, "Semester 1 2024"),
         ("Physics 201",         "PHYS201",  "B+",   78.0, 100.0,  78.0, "Semester 1 2024"),
@@ -267,44 +270,41 @@ def seed(conn: psycopg.Connection, session_id: str) -> None:
         conn.execute(
             """
             INSERT INTO parsed_grades
-                (file_id, user_id, course_name, course_code, grade_letter,
+                (file_id, course_name, course_code, grade_letter,
                  score, max_score, percentage, semester, source_row)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
-            (transcript_id, user_id, cname, ccode, letter,
-             score, max_s, pct, sem, row_idx),
+            (transcript_id, cname, ccode, letter, score, max_s, pct, sem, row_idx),
         )
 
-    # — CS101 Assignment 3 (DOCX)
     assign_id     = str(uuid.uuid4())
     assign_stored = f"{uuid.uuid4()}.docx"
     conn.execute(
         """
         INSERT INTO uploaded_files
-            (file_id, user_id, session_id, original_name, stored_name,
+            (file_id, session_id, original_name, stored_name,
              file_type, file_size, category, parse_status, storage_path)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
-            assign_id, user_id, session_id,
+            assign_id, session_id,
             "CS101_Assignment_3.docx", assign_stored,
             "docx", 38_912, "Assignments", "done",
             f"uploads/{assign_stored}",
         ),
     )
 
-    # — Mathematics Notes Chapter 7 (PDF)
     notes_id     = str(uuid.uuid4())
     notes_stored = f"{uuid.uuid4()}.pdf"
     conn.execute(
         """
         INSERT INTO uploaded_files
-            (file_id, user_id, session_id, original_name, stored_name,
+            (file_id, session_id, original_name, stored_name,
              file_type, file_size, category, parse_status, storage_path)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
-            notes_id, user_id, session_id,
+            notes_id, session_id,
             "Mathematics_Notes_Ch7_Integration.pdf", notes_stored,
             "pdf", 215_040, "Notes", "done",
             f"uploads/{notes_stored}",
@@ -312,12 +312,8 @@ def seed(conn: psycopg.Connection, session_id: str) -> None:
     )
 
     # ── 6. App usage logs ─────────────────────────────────────────────────────
-    # 7 apps × 7 days = 49 entries
-    # Productive: 1330 min  |  Neutral: 635 min  |  Distracting: 320 min
-    # → focusRatio ≈ 1330 / 2285 × 100 ≈ 58.2%
     print("  [6/7] Inserting app usage logs (49 entries)…")
 
-    # (app_name, category, [mon, tue, wed, thu, fri, sat, sun] minutes)
     _apps = [
         ("VS Code",    "Productive",  [150, 120, 140, 100,  90, 130, 110]),
         ("Notion",     "Productive",  [ 45,  35,  50,  40,  30,  45,  35]),
@@ -327,7 +323,7 @@ def seed(conn: psycopg.Connection, session_id: str) -> None:
         ("Reddit",     "Distracting", [ 30,  25,  35,  20,  30,  25,  20]),
         ("Instagram",  "Distracting", [ 20,  15,  20,  25,  20,  15,  20]),
     ]
-    total_log_count = sum(len(mins) for _, _, mins in _apps)  # 49
+    total_log_count = sum(len(mins) for _, _, mins in _apps)
 
     app_import_id = str(uuid.uuid4())
     conn.execute(
@@ -351,33 +347,21 @@ def seed(conn: psycopg.Connection, session_id: str) -> None:
             )
 
     # ── 7. Study sessions ─────────────────────────────────────────────────────
-    # 2 sessions per day × 7 days = 14 sessions
-    # studyHours    ≈ 4.07 h/day   (daily totals: 300,210,270,240,210,300,180 min)
-    # attentionSpan ≈ 44.8 min     (duration ÷ (breaks+1), avg across 14 sessions)
-    # breakFreq     ≈ 1.79/session (avg breaks_taken)
     print("  [7/7] Inserting study sessions (14 sessions)…")
 
-    # (day_n, start_h, start_m, end_h, end_m, subject, breaks, notes)
     _sessions = [
-        # ── Monday Nov 4 (total 300 min) ──────────────────────────────────────
         (0,  9,  0, 11, 30, "Mathematics",  2, "Integration by parts, substitution method"),
         (0, 14,  0, 16, 30, "Programming",  3, "Binary search tree implementation and unit tests"),
-        # ── Tuesday Nov 5 (total 210 min) ─────────────────────────────────────
         (1,  9, 30, 11, 30, "Physics",      2, "Electromagnetism — Faraday's law and applications"),
         (1, 14,  0, 15, 30, "Mathematics",  1, "Differential equations — separation of variables"),
-        # ── Wednesday Nov 6 (total 270 min) ───────────────────────────────────
         (2,  9,  0, 12,  0, "Programming",  3, "AVL tree implementation, wrote benchmarks"),
         (2, 15,  0, 16, 30, "Literature",   1, "Victorian poetry analysis — Tennyson and Browning"),
-        # ── Thursday Nov 7 (total 240 min) ────────────────────────────────────
         (3,  9,  0, 11,  0, "Mathematics",  1, "Complex numbers — polar form and Euler's formula"),
         (3, 13, 30, 15, 30, "Physics",      2, "Thermodynamics — entropy and the Carnot cycle"),
-        # ── Friday Nov 8 (total 210 min) ──────────────────────────────────────
         (4,  9,  0, 10, 30, "Economics",    1, "IS-LM model and aggregate demand"),
         (4, 14,  0, 16,  0, "Programming",  2, "Graph algorithms — Dijkstra, BFS, DFS"),
-        # ── Saturday Nov 9 (total 300 min) ────────────────────────────────────
         (5, 10,  0, 13,  0, "Mathematics",  3, "Vector calculus — gradient, divergence, curl"),
         (5, 15,  0, 17,  0, "Literature",   2, "Essay draft: Romanticism vs Modernism"),
-        # ── Sunday Nov 10 (total 180 min) ─────────────────────────────────────
         (6, 11,  0, 12, 30, "Physics",      1, "Electromagnetism problem set review"),
         (6, 14,  0, 15, 30, "Economics",    1, "IS-LM worked examples and past paper"),
     ]
@@ -413,18 +397,22 @@ def seed(conn: psycopg.Connection, session_id: str) -> None:
         )
 
     conn.commit()
+    return user_id
 
 
 # ── Cleanup helpers ───────────────────────────────────────────────────────────
 
-def _clean(conn: psycopg.Connection, session_id: str) -> None:
-    """Delete all data tied to the demo user / session."""
-    # Session-scoped tables (no user_id FK — must delete by session_id)
+def _clean(conn: psycopg.Connection) -> None:
+    """Delete all data tied to the demo user."""
+    row = conn.execute(
+        "SELECT user_id FROM users WHERE email = %s", (DEMO_EMAIL,)
+    ).fetchone()
+    if not row:
+        return
+    uid = str(row["user_id"])
     for table in ("app_usage_imports", "study_imports",
                   "health_imports", "uploaded_files"):
-        conn.execute(f"DELETE FROM {table} WHERE session_id = %s", (session_id,))
-    # User row — cascades to student_profiles (ON DELETE CASCADE)
-    # health_imports/uploaded_files.user_id → ON DELETE SET NULL (already deleted above)
+        conn.execute(f"DELETE FROM {table} WHERE session_id = %s", (uid,))
     conn.execute("DELETE FROM users WHERE email = %s", (DEMO_EMAIL,))
     conn.commit()
 
@@ -438,10 +426,6 @@ def main() -> None:
     parser.add_argument(
         "--force", action="store_true",
         help="Delete existing demo user and all linked records, then re-seed.",
-    )
-    parser.add_argument(
-        "--session", default=DEFAULT_SESSION, metavar="SESSION_ID",
-        help=f"Session ID to tag all imported data (default: {DEFAULT_SESSION}).",
     )
     args = parser.parse_args()
 
@@ -457,36 +441,35 @@ def main() -> None:
         if existing:
             if not args.force:
                 print(f"\n  ✓ Demo user already exists.")
-                print(f"    user_id:    {existing['user_id']}")
-                print(f"    session_id: {args.session}")
+                print(f"    user_id: {existing['user_id']}")
                 print(f"\n    Use --force to delete and re-seed.")
-                _print_instructions(args.session)
+                _print_instructions(str(existing['user_id']))
                 return
             print(f"  --force: removing existing demo data…")
-            _clean(conn, args.session)
+            _clean(conn)
             print(f"  ✓ Cleaned up.\n")
 
-        print(f"  Email:      {DEMO_EMAIL}")
-        print(f"  Session ID: {args.session}")
-        print(f"  Demo week:  {BASE_DATE} → {day(6)}\n")
+        print(f"  Email:     {DEMO_EMAIL}")
+        print(f"  Password:  {DEMO_PASSWORD}")
+        print(f"  Demo week: {BASE_DATE} → {day(6)}\n")
 
         try:
-            seed(conn, session_id=args.session)
+            user_id = seed(conn)
         except Exception as exc:
             conn.rollback()
             print(f"\n  ✗ Seed failed: {exc}")
             raise
 
-    _print_instructions(args.session)
+    _print_instructions(user_id)
 
 
-def _print_instructions(session_id: str) -> None:
+def _print_instructions(user_id: str) -> None:
     print(f"\n  {'=' * 54}")
     print(f"  ✓  All data seeded successfully.\n")
-    print(f"  To view this data in the app, open your browser's")
-    print(f"  DevTools console (F12) and paste:\n")
-    print(f"      sessionStorage.setItem('sv_session_id', '{session_id}');")
-    print(f"      location.reload();\n")
+    print(f"  Log in at the app with:\n")
+    print(f"      Email:    {DEMO_EMAIL}")
+    print(f"      Password: {DEMO_PASSWORD}\n")
+    print(f"  user_id (= session_id in DB): {user_id}\n")
     print(f"  Then navigate to each section:\n")
     print(f"    Health      → 1 import · 35 metrics (sleep, HR, steps)")
     print(f"    Files       → 3 files  · 4 parsed grades")

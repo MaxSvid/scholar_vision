@@ -1,15 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '../context/AuthContext'
 import './SubPanel.css'
 
 const QUALITY_OPTS = ['High', 'Medium', 'Low']
 
-function getSessionId() {
-  let id = sessionStorage.getItem('sv_session_id')
-  if (!id) { id = crypto.randomUUID(); sessionStorage.setItem('sv_session_id', id) }
-  return id
-}
-
 export default function AttentionSpan() {
+  const { apiFetch } = useAuth()
   const [sessions,  setSessions]  = useState([])
   const [summary,   setSummary]   = useState(null)
   const [form,      setForm]      = useState({ duration: '', breaks: '', quality: 'High', date: new Date().toISOString().slice(0, 10) })
@@ -17,14 +13,12 @@ export default function AttentionSpan() {
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState(null)
 
-  // Pomodoro-style live timer
   const [timerActive, setTimerActive] = useState(false)
   const [timerSecs,   setTimerSecs]   = useState(0)
-  const [timerMode,   setTimerMode]   = useState('focus') // 'focus' | 'break'
+  const [timerMode,   setTimerMode]   = useState('focus')
   const intervalRef = useRef(null)
-  const sessionId   = getSessionId()
 
-  useEffect(() => { fetchSessions() }, [])
+  useEffect(() => { fetchSessions() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (timerActive) {
@@ -37,7 +31,7 @@ export default function AttentionSpan() {
 
   async function fetchSessions() {
     try {
-      const res  = await fetch(`/api/activity/attention?session_id=${sessionId}`)
+      const res  = await apiFetch('/api/activity/attention')
       if (!res.ok) return
       const data = await res.json()
       setSessions(data.entries || [])
@@ -46,7 +40,7 @@ export default function AttentionSpan() {
   }
 
   async function saveEntry(data) {
-    const res = await fetch(`/api/activity/attention?session_id=${sessionId}`, {
+    const res = await apiFetch('/api/activity/attention', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(data),
@@ -94,7 +88,7 @@ export default function AttentionSpan() {
 
   const removeSession = async id => {
     try {
-      await fetch(`/api/activity/attention/${id}?session_id=${sessionId}`, { method: 'DELETE' })
+      await apiFetch(`/api/activity/attention/${id}`, { method: 'DELETE' })
       await fetchSessions()
       window.dispatchEvent(new CustomEvent('sv:data-imported'))
     } catch { /* best-effort */ }
@@ -150,7 +144,6 @@ export default function AttentionSpan() {
 
       {error && <div className="fi-error muted-text">&gt; {error}</div>}
 
-      {/* Manual log */}
       <div className="sp-action-row">
         <button className="retro-btn solid" onClick={() => setShowForm(v => !v)}>
           {showForm ? '— CANCEL' : '+ LOG MANUALLY'}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 import './AuthModal.css'
 
 const FIELDS_OF_STUDY = [
@@ -13,9 +14,11 @@ const YEAR_OPTIONS = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year+
 const STEPS = ['Identity', 'Academics', 'Goals']
 
 export default function AuthModal({ mode, onClose, onLogin }) {
-  const [view, setView] = useState(mode)
-  const [step, setStep] = useState(0)
-  const [error, setError] = useState('')
+  const { login, register } = useAuth()
+  const [view,       setView]       = useState(mode)
+  const [step,       setStep]       = useState(0)
+  const [error,      setError]      = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPwd,   setLoginPwd]   = useState('')
@@ -62,23 +65,47 @@ export default function AuthModal({ mode, onClose, onLogin }) {
     setStep(s => s + 1)
   }
 
-  const handleRegisterSubmit = () => {
+  const handleRegisterSubmit = async () => {
     const err = validateStep()
     if (err) { setError(err); return }
-    localStorage.setItem('sv-user', JSON.stringify({ ...reg, password: undefined }))
-    localStorage.setItem('sv-auth', '1')
-    onLogin({ ...reg })
-    onClose()
+    setError('')
+    setSubmitting(true)
+    try {
+      const userData = await register({
+        email:        reg.email,
+        password:     reg.password,
+        firstName:    reg.firstName,
+        lastName:     reg.lastName,
+        fieldOfStudy: reg.fieldOfStudy,
+        yearOfStudy:  reg.yearOfStudy,
+        university:   reg.university,
+        weeklyHours:  reg.weeklyHours || '',
+        studyGoal:    reg.studyGoal,
+        targetGPA:    reg.targetGPA,
+      })
+      onLogin(userData)
+      onClose()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const handleLoginSubmit = e => {
+  const handleLoginSubmit = async e => {
     e.preventDefault()
     if (!loginEmail || !loginPwd) { setError('Both fields are required.'); return }
-    const stored = localStorage.getItem('sv-user')
-    if (!stored) { setError('No account found. Please register first.'); return }
-    localStorage.setItem('sv-auth', '1')
-    onLogin(JSON.parse(stored))
-    onClose()
+    setError('')
+    setSubmitting(true)
+    try {
+      const userData = await login(loginEmail, loginPwd)
+      onLogin(userData)
+      onClose()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -124,8 +151,8 @@ export default function AuthModal({ mode, onClose, onLogin }) {
               onChange={e => { setLoginPwd(e.target.value); setError('') }}
             />
             {error && <p className="modal-error">{error}</p>}
-            <button type="submit" className="retro-btn solid modal-submit">
-              Sign In
+            <button type="submit" className="retro-btn solid modal-submit" disabled={submitting}>
+              {submitting ? 'Signing in…' : 'Sign In'}
             </button>
             <p className="modal-switch muted-text">
               No account?{' '}
@@ -228,8 +255,8 @@ export default function AuthModal({ mode, onClose, onLogin }) {
               )}
               {step < STEPS.length - 1
                 ? <button className="retro-btn solid" onClick={nextStep}>Next</button>
-                : <button className="retro-btn solid" onClick={handleRegisterSubmit}>
-                    Create Account
+                : <button className="retro-btn solid" onClick={handleRegisterSubmit} disabled={submitting}>
+                    {submitting ? 'Creating…' : 'Create Account'}
                   </button>
               }
             </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 import StudyTracker from './StudyTracker'
 import AppUsage from './AppUsage'
 import AttentionSpan from './AttentionSpan'
@@ -22,19 +23,18 @@ const TABS = [
 ]
 
 export default function Dashboard({ user, onLogout }) {
+  const { apiFetch } = useAuth()
   const [tab, setTab] = useState('overview')
   const [studySessions, setStudySessions] = useState([])
   const [appLogs,       setAppLogs]       = useState([])
   const [healthMetrics, setHealthMetrics] = useState([])
 
   useEffect(() => {
-    let id = sessionStorage.getItem('sv_session_id')
-    if (!id) return
-    fetch(`/api/health/metrics/summary?session_id=${id}`)
+    apiFetch('/api/health/metrics/summary')
       .then(r => r.ok ? r.json() : null)
       .then(d => d?.summary && setHealthMetrics(d.summary))
       .catch(() => {})
-  }, [])
+  }, [apiFetch])
 
   const displayName = user?.firstName
     ? `${user.firstName} ${user.lastName}`
@@ -101,12 +101,12 @@ export default function Dashboard({ user, onLogout }) {
 
 /* ─── OVERVIEW PANEL ─── */
 function OverviewPanel({ user, setTab }) {
+  const { apiFetch } = useAuth()
   const [stats, setStats] = useState(null)
 
   useEffect(() => {
     function load() {
-      const sessionId = sessionStorage.getItem('sv_session_id') || ''
-      fetch(`/api/profile/overview?session_id=${sessionId}`)
+      apiFetch('/api/profile/overview')
         .then(r => r.ok ? r.json() : null)
         .then(d => d && setStats(d))
         .catch(() => {})
@@ -114,7 +114,7 @@ function OverviewPanel({ user, setTab }) {
     load()
     window.addEventListener('sv:data-imported', load)
     return () => window.removeEventListener('sv:data-imported', load)
-  }, [])
+  }, [apiFetch])
 
   const cards = [
     {

@@ -1,27 +1,36 @@
 """
 Activity import router.
 
-POST   /api/activity/app-usage?session_id=...   – import app usage JSON
-GET    /api/activity/app-usage?session_id=...   – list imports for session
-GET    /api/activity/app-usage/{id}             – detail + entries
-DELETE /api/activity/app-usage/{id}             – delete import + cascade
+POST   /api/activity/app-usage           – import app usage JSON
+GET    /api/activity/app-usage           – list imports for session
+POST   /api/activity/app-usage/manual    – save a manual app entry
+DELETE /api/activity/app-usage/manual/{id} – delete a manual entry
+GET    /api/activity/app-usage/{id}      – detail + entries
+DELETE /api/activity/app-usage/{id}      – delete import + cascade
 
-POST   /api/activity/study-logs?session_id=...  – import study sessions JSON
-GET    /api/activity/study-logs?session_id=...  – list imports
-GET    /api/activity/study-logs/{id}            – detail + entries
-DELETE /api/activity/study-logs/{id}            – delete import + cascade
+POST   /api/activity/study-logs          – import study sessions JSON
+GET    /api/activity/study-logs          – list imports
+POST   /api/activity/study-logs/manual   – save a manual study entry
+DELETE /api/activity/study-logs/manual/{id} – delete a manual entry
+GET    /api/activity/study-logs/{id}     – detail + entries
+DELETE /api/activity/study-logs/{id}     – delete import + cascade
+
+GET    /api/activity/attention           – list attention entries
+POST   /api/activity/attention           – add attention entry
+DELETE /api/activity/attention/{id}      – delete entry
 """
 
 from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from database.execute import execute, execute_returning, fetch_all, fetch_one
 from parsers.app_usage_parser import parse_app_usage_json, summarise_app_usage
 from parsers.study_parser import parse_study_json
+from security import get_current_user
 
 router = APIRouter(prefix="/api/activity", tags=["activity"])
 
@@ -57,7 +66,7 @@ class ManualAttentionEntry(BaseModel):
 @router.post("/app-usage")
 async def import_app_usage(
     request:    Request,
-    session_id: str = Query(...),
+    session_id: str = Depends(get_current_user),
 ):
     content = await request.body()
     if len(content) > MAX_BODY_BYTES:
@@ -99,7 +108,7 @@ async def import_app_usage(
 
 
 @router.get("/app-usage")
-async def list_app_usage_imports(session_id: str = Query(...)):
+async def list_app_usage_imports(session_id: str = Depends(get_current_user)):
     rows = await fetch_all(
         """
         SELECT import_id, sync_timestamp, client_version, log_count, imported_at
@@ -164,7 +173,7 @@ async def list_app_usage_imports(session_id: str = Query(...)):
 
 
 @router.post("/app-usage/manual")
-async def add_manual_app_entry(body: ManualAppEntry, session_id: str = Query(...)):
+async def add_manual_app_entry(body: ManualAppEntry, session_id: str = Depends(get_current_user)):
     try:
         datetime.strptime(body.date, "%Y-%m-%d")
     except ValueError:
@@ -197,7 +206,7 @@ async def add_manual_app_entry(body: ManualAppEntry, session_id: str = Query(...
 
 
 @router.delete("/app-usage/manual/{entry_id}")
-async def delete_manual_app_entry(entry_id: int, session_id: str = Query(...)):
+async def delete_manual_app_entry(entry_id: int, session_id: str = Depends(get_current_user)):
     entry = await fetch_one(
         """
         SELECT ae.entry_id, ae.import_id, ai.client_version
@@ -217,9 +226,10 @@ async def delete_manual_app_entry(entry_id: int, session_id: str = Query(...)):
 
 
 @router.get("/app-usage/{import_id}")
-async def get_app_usage_import(import_id: str):
+async def get_app_usage_import(import_id: str, session_id: str = Depends(get_current_user)):
     row = await fetch_one(
-        "SELECT * FROM app_usage_imports WHERE import_id = %s", (import_id,)
+        "SELECT * FROM app_usage_imports WHERE import_id = %s AND session_id = %s",
+        (import_id, session_id),
     )
     if not row:
         raise HTTPException(404, "Import not found")
@@ -237,9 +247,10 @@ async def get_app_usage_import(import_id: str):
 
 
 @router.delete("/app-usage/{import_id}")
-async def delete_app_usage_import(import_id: str):
+async def delete_app_usage_import(import_id: str, session_id: str = Depends(get_current_user)):
     row = await fetch_one(
-        "SELECT import_id FROM app_usage_imports WHERE import_id = %s", (import_id,)
+        "SELECT import_id FROM app_usage_imports WHERE import_id = %s AND session_id = %s",
+        (import_id, session_id),
     )
     if not row:
         raise HTTPException(404, "Import not found")
@@ -252,7 +263,7 @@ async def delete_app_usage_import(import_id: str):
 @router.post("/study-logs")
 async def import_study_logs(
     request:    Request,
-    session_id: str = Query(...),
+    session_id: str = Depends(get_current_user),
 ):
     content = await request.body()
     if len(content) > MAX_BODY_BYTES:
@@ -297,7 +308,7 @@ async def import_study_logs(
 
 
 @router.get("/study-logs")
-async def list_study_imports(session_id: str = Query(...)):
+async def list_study_imports(session_id: str = Depends(get_current_user)):
     rows = await fetch_all(
         """
         SELECT import_id, sync_timestamp, client_version, session_count, imported_at
@@ -379,7 +390,7 @@ async def list_study_imports(session_id: str = Query(...)):
 
 
 @router.post("/study-logs/manual")
-async def add_manual_study_entry(body: ManualStudyEntry, session_id: str = Query(...)):
+async def add_manual_study_entry(body: ManualStudyEntry, session_id: str = Depends(get_current_user)):
     try:
         parsed_date = datetime.strptime(body.date, "%Y-%m-%d")
     except ValueError:
@@ -413,7 +424,7 @@ async def add_manual_study_entry(body: ManualStudyEntry, session_id: str = Query
 
 
 @router.delete("/study-logs/manual/{entry_id}")
-async def delete_manual_study_entry(entry_id: int, session_id: str = Query(...)):
+async def delete_manual_study_entry(entry_id: int, session_id: str = Depends(get_current_user)):
     entry = await fetch_one(
         """
         SELECT se.entry_id, se.import_id, si.client_version
@@ -433,9 +444,10 @@ async def delete_manual_study_entry(entry_id: int, session_id: str = Query(...))
 
 
 @router.get("/study-logs/{import_id}")
-async def get_study_import(import_id: str):
+async def get_study_import(import_id: str, session_id: str = Depends(get_current_user)):
     row = await fetch_one(
-        "SELECT * FROM study_imports WHERE import_id = %s", (import_id,)
+        "SELECT * FROM study_imports WHERE import_id = %s AND session_id = %s",
+        (import_id, session_id),
     )
     if not row:
         raise HTTPException(404, "Import not found")
@@ -462,9 +474,10 @@ async def get_study_import(import_id: str):
 
 
 @router.delete("/study-logs/{import_id}")
-async def delete_study_import(import_id: str):
+async def delete_study_import(import_id: str, session_id: str = Depends(get_current_user)):
     row = await fetch_one(
-        "SELECT import_id FROM study_imports WHERE import_id = %s", (import_id,)
+        "SELECT import_id FROM study_imports WHERE import_id = %s AND session_id = %s",
+        (import_id, session_id),
     )
     if not row:
         raise HTTPException(404, "Import not found")
@@ -475,7 +488,7 @@ async def delete_study_import(import_id: str):
 # ── Attention / Focus Sessions ────────────────────────────────────────────────
 
 @router.get("/attention")
-async def list_attention_entries(session_id: str = Query(...)):
+async def list_attention_entries(session_id: str = Depends(get_current_user)):
     rows = await fetch_all(
         """
         SELECT entry_id, duration_mins, breaks_taken, quality,
@@ -505,7 +518,7 @@ async def list_attention_entries(session_id: str = Query(...)):
 
 
 @router.post("/attention")
-async def add_attention_entry(body: ManualAttentionEntry, session_id: str = Query(...)):
+async def add_attention_entry(body: ManualAttentionEntry, session_id: str = Depends(get_current_user)):
     try:
         datetime.strptime(body.date, "%Y-%m-%d")
     except ValueError:
@@ -527,7 +540,7 @@ async def add_attention_entry(body: ManualAttentionEntry, session_id: str = Quer
 
 
 @router.delete("/attention/{entry_id}")
-async def delete_attention_entry(entry_id: int, session_id: str = Query(...)):
+async def delete_attention_entry(entry_id: int, session_id: str = Depends(get_current_user)):
     row = await fetch_one(
         "SELECT entry_id FROM attention_entries WHERE entry_id = %s AND session_id = %s",
         (entry_id, session_id),

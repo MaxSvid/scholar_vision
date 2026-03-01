@@ -12,10 +12,11 @@ analysis_mode:
 
 from enum import Enum
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from ml_engine import engine
+from security import get_current_user
 
 router = APIRouter(prefix="/api/predictions", tags=["predictions"])
 
@@ -56,7 +57,7 @@ class PredictionResponse(BaseModel):
 # ─── Endpoint ─────────────────────────────────────────────────────────────────
 
 @router.post("/analyze", response_model=PredictionResponse)
-async def analyze(req: PredictionRequest):
+async def analyze(req: PredictionRequest, _: str = Depends(get_current_user)):
     if engine.dt is None:
         raise HTTPException(503, detail="ML models not ready — please retry in a moment.")
 

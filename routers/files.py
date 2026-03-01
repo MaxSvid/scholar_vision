@@ -2,23 +2,22 @@
 File import router — upload, list, retrieve, delete academic files.
 
 POST   /api/files/upload      – upload one file, parse it, store to DB
-GET    /api/files             – list files for a session
+GET    /api/files             – list files for authenticated user
 GET    /api/files/{file_id}   – full file record with parsed data
 DELETE /api/files/{file_id}   – delete file from disk + DB
 """
 
 from __future__ import annotations
 
-import os
 import uuid
 from pathlib import Path
 
 import aiofiles
-from fastapi import APIRouter, Form, HTTPException, UploadFile, File
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, File
 
 from database.execute import execute, execute_returning, fetch_all, fetch_one
 from parsers.file_parser import parse_file
+from security import get_current_user
 
 router = APIRouter(prefix="/api/files", tags=["files"])
 
@@ -34,9 +33,9 @@ MAX_FILE_BYTES = 20 * 1024 * 1024  # 20 MB
 @router.post("/upload")
 async def upload_file(
     file:       UploadFile = File(...),
-    session_id: str        = Form(...),
     category:   str        = Form("Other"),
     notes:      str        = Form(""),
+    session_id: str        = Depends(get_current_user),
 ):
     content = await file.read()
 
@@ -47,8 +46,8 @@ async def upload_file(
     if ext not in ALLOWED_TYPES:
         raise HTTPException(415, f"File type '{ext}' not supported")
 
-    file_id     = str(uuid.uuid4())
-    stored_name = f"{file_id}.{ext}"
+    file_id      = str(uuid.uuid4())
+    stored_name  = f"{file_id}.{ext}"
     storage_path = str(UPLOADS_DIR / stored_name)
 
     # Persist to disk
@@ -113,7 +112,7 @@ async def upload_file(
 # ── List ──────────────────────────────────────────────────────────────────────
 
 @router.get("")
-async def list_files(session_id: str):
+async def list_files(session_id: str = Depends(get_current_user)):
     rows = await fetch_all(
         """
         SELECT file_id, original_name, file_type, file_size,
@@ -130,10 +129,10 @@ async def list_files(session_id: str):
 # ── Detail ────────────────────────────────────────────────────────────────────
 
 @router.get("/{file_id}")
-async def get_file(file_id: str):
+async def get_file(file_id: str, session_id: str = Depends(get_current_user)):
     row = await fetch_one(
-        "SELECT * FROM uploaded_files WHERE file_id = %s",
-        (file_id,),
+        "SELECT * FROM uploaded_files WHERE file_id = %s AND session_id = %s",
+        (file_id, session_id),
     )
     if not row:
         raise HTTPException(404, "File not found")
@@ -153,15 +152,14 @@ async def get_file(file_id: str):
 # ── Delete ────────────────────────────────────────────────────────────────────
 
 @router.delete("/{file_id}")
-async def delete_file(file_id: str):
+async def delete_file(file_id: str, session_id: str = Depends(get_current_user)):
     row = await fetch_one(
-        "SELECT storage_path FROM uploaded_files WHERE file_id = %s",
-        (file_id,),
+        "SELECT storage_path FROM uploaded_files WHERE file_id = %s AND session_id = %s",
+        (file_id, session_id),
     )
     if not row:
         raise HTTPException(404, "File not found")
 
-    # Remove from disk (ignore if already gone)
     try:
         Path(row["storage_path"]).unlink(missing_ok=True)
     except Exception:

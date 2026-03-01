@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 import './SubPanel.css'
 import './HealthImport.css'
 
@@ -39,30 +40,24 @@ function label(type)  { return METRIC_LABELS[type] || type.replace(/_/g, ' ') }
 function icon(type)   { return METRIC_ICONS[type]  || METRIC_ICONS.default }
 function fmtTime(iso) { return iso ? new Date(iso).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : '—' }
 
-function getSessionId() {
-  let id = sessionStorage.getItem('sv_session_id')
-  if (!id) { id = crypto.randomUUID(); sessionStorage.setItem('sv_session_id', id) }
-  return id
-}
-
 export default function HealthImport() {
+  const { apiFetch } = useAuth()
   const [imports,   setImports]   = useState([])
-  const [summary,   setSummary]   = useState([])   // aggregated across all imports
+  const [summary,   setSummary]   = useState([])
   const [dragging,  setDragging]  = useState(false)
   const [pasteMode, setPasteMode] = useState(false)
   const [pasteText, setPasteText] = useState('')
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState(null)
-  const [expanded,  setExpanded]  = useState(null) // import_id of expanded detail
+  const [expanded,  setExpanded]  = useState(null)
   const [detail,    setDetail]    = useState(null)
-  const inputRef   = useRef()
-  const sessionId  = getSessionId()
+  const inputRef = useRef()
 
-  useEffect(() => { fetchImports(); fetchSummary() }, [])
+  useEffect(() => { fetchImports(); fetchSummary() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchImports() {
     try {
-      const res  = await fetch(`/api/health/imports?session_id=${sessionId}`)
+      const res  = await apiFetch('/api/health/imports')
       if (!res.ok) return
       const data = await res.json()
       setImports(data.imports || [])
@@ -71,7 +66,7 @@ export default function HealthImport() {
 
   async function fetchSummary() {
     try {
-      const res  = await fetch(`/api/health/metrics/summary?session_id=${sessionId}`)
+      const res  = await apiFetch('/api/health/metrics/summary')
       if (!res.ok) return
       const data = await res.json()
       setSummary(data.summary || [])
@@ -81,9 +76,8 @@ export default function HealthImport() {
   async function submitJson(jsonText) {
     setError(null)
     setLoading(true)
-    console.log('[HealthImport] Submitting health JSON payload…')
     try {
-      const res = await fetch(`/api/health/import?session_id=${sessionId}`, {
+      const res = await apiFetch('/api/health/import', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    jsonText,
@@ -94,15 +88,11 @@ export default function HealthImport() {
         throw new Error(e.detail || 'Invalid health JSON format')
       }
       if (!res.ok) throw new Error(`Server error (${res.status})`)
-
-      const data = await res.json()
-      console.log(`[HealthImport] Imported ${data.metric_count} metrics. Summary:`, data.summary)
       await fetchImports()
       await fetchSummary()
       setPasteText('')
       setPasteMode(false)
     } catch (e) {
-      console.error('[HealthImport] Import failed:', e.message)
       setError(e.message)
     } finally {
       setLoading(false)
@@ -114,7 +104,6 @@ export default function HealthImport() {
       setError('Only .json files are accepted')
       return
     }
-    console.log(`[HealthImport] Reading file "${file.name}" (${(file.size/1024).toFixed(1)} KB)`)
     const text = await file.text()
     submitJson(text)
   }
@@ -127,8 +116,7 @@ export default function HealthImport() {
 
   const removeImport = async id => {
     try {
-      await fetch(`/api/health/imports/${id}`, { method: 'DELETE' })
-      console.log('[HealthImport] Deleted import:', id)
+      await apiFetch(`/api/health/imports/${id}`, { method: 'DELETE' })
     } catch { /* best-effort */ }
     setImports(prev => prev.filter(i => i.import_id !== id))
     if (expanded === id) { setExpanded(null); setDetail(null) }
@@ -140,7 +128,7 @@ export default function HealthImport() {
     setExpanded(id)
     setDetail(null)
     try {
-      const res  = await fetch(`/api/health/imports/${id}`)
+      const res  = await apiFetch(`/api/health/imports/${id}`)
       const data = await res.json()
       setDetail(data)
     } catch { setDetail({ error: 'Could not load detail' }) }
@@ -212,7 +200,7 @@ export default function HealthImport() {
 
       {error && <div className="fi-error muted-text">&gt; {error}</div>}
 
-      {/* Aggregated summary across all imports */}
+      {/* Aggregated summary */}
       {summary.length > 0 && (
         <div className="hi-summary-section">
           <div className="sp-chart-title muted-text">ALL-TIME SUMMARY</div>
@@ -271,7 +259,6 @@ export default function HealthImport() {
               </div>
             </div>
 
-            {/* Expanded detail */}
             {expanded === imp.import_id && (
               <div className="hi-detail">
                 {!detail && <div className="muted-text" style={{ fontSize: '0.78rem' }}>Loading…</div>}

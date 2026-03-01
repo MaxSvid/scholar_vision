@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 import './SubPanel.css'
 import './FileImport.css'
 import './HealthImport.css'
@@ -18,21 +19,15 @@ function getCategory(app) {
   return 'Neutral'
 }
 
-function getSessionId() {
-  let id = sessionStorage.getItem('sv_session_id')
-  if (!id) { id = crypto.randomUUID(); sessionStorage.setItem('sv_session_id', id) }
-  return id
-}
-
 function fmtTime(iso) {
   return iso ? new Date(iso).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : '—'
 }
 
 export default function AppUsage({ logs, setLogs }) {
+  const { apiFetch } = useAuth()
   const [form, setForm] = useState({ app: '', hours: '', date: new Date().toISOString().slice(0,10) })
   const [showForm, setShowForm] = useState(false)
 
-  // Import state
   const [imports,  setImports]  = useState([])
   const [summary,  setSummary]  = useState(null)
   const [dragging, setDragging] = useState(false)
@@ -40,14 +35,13 @@ export default function AppUsage({ logs, setLogs }) {
   const [error,    setError]    = useState(null)
   const [expanded, setExpanded] = useState(null)
   const [detail,   setDetail]   = useState(null)
-  const inputRef  = useRef()
-  const sessionId = getSessionId()
+  const inputRef = useRef()
 
-  useEffect(() => { fetchImports() }, [])
+  useEffect(() => { fetchImports() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchImports() {
     try {
-      const res  = await fetch(`/api/activity/app-usage?session_id=${sessionId}`)
+      const res  = await apiFetch('/api/activity/app-usage')
       if (!res.ok) return
       const data = await res.json()
       setImports(data.imports || [])
@@ -68,7 +62,7 @@ export default function AppUsage({ logs, setLogs }) {
     setError(null)
     setLoading(true)
     try {
-      const res = await fetch(`/api/activity/app-usage?session_id=${sessionId}`, {
+      const res = await apiFetch('/api/activity/app-usage', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    text,
@@ -103,7 +97,7 @@ export default function AppUsage({ logs, setLogs }) {
 
   const removeImport = async id => {
     if (expanded === id) { setExpanded(null); setDetail(null) }
-    try { await fetch(`/api/activity/app-usage/${id}`, { method: 'DELETE' }) } catch { /* best-effort */ }
+    try { await apiFetch(`/api/activity/app-usage/${id}`, { method: 'DELETE' }) } catch { /* best-effort */ }
     await fetchImports()
   }
 
@@ -111,13 +105,12 @@ export default function AppUsage({ logs, setLogs }) {
     if (expanded === id) { setExpanded(null); setDetail(null); return }
     setExpanded(id); setDetail(null)
     try {
-      const res  = await fetch(`/api/activity/app-usage/${id}`)
+      const res  = await apiFetch(`/api/activity/app-usage/${id}`)
       const data = await res.json()
       setDetail(data)
     } catch { setDetail({ error: 'Could not load detail' }) }
   }
 
-  // Combined stats: imported (from backend summary) + manually entered
   const importedTotal = (summary?.total_mins       ?? 0) / 60
   const importedProd  = (summary?.productive_mins  ?? 0) / 60
   const importedDist  = (summary?.distracting_mins ?? 0) / 60
@@ -129,7 +122,6 @@ export default function AppUsage({ logs, setLogs }) {
   const distracting   = importedDist  + manualDist
   const focusRatio    = total ? Math.round((productive / total) * 100) : 0
 
-  // Per-app breakdown: seed from imported data, then add manual entries on top
   const appMap = {}
   for (const a of (summary?.by_app ?? [])) {
     appMap[a.app_name] = { app: a.app_name, hours: a.total_mins / 60, category: a.category }
@@ -146,7 +138,7 @@ export default function AppUsage({ logs, setLogs }) {
     const category = getCategory(form.app)
     setLoading(true); setError(null)
     try {
-      const res = await fetch(`/api/activity/app-usage/manual?session_id=${sessionId}`, {
+      const res = await apiFetch('/api/activity/app-usage/manual', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ app: form.app, hours: parseFloat(form.hours),
                                date: form.date, category }),
@@ -161,7 +153,7 @@ export default function AppUsage({ logs, setLogs }) {
 
   const removeLog = async id => {
     try {
-      await fetch(`/api/activity/app-usage/manual/${id}?session_id=${sessionId}`, { method: 'DELETE' })
+      await apiFetch(`/api/activity/app-usage/manual/${id}`, { method: 'DELETE' })
       await fetchImports()
       window.dispatchEvent(new CustomEvent('sv:data-imported'))
     } catch { /* best-effort */ }
@@ -258,7 +250,6 @@ export default function AppUsage({ logs, setLogs }) {
       {/* ── Manual Entry Section ────────────────────────────────────── */}
       <div className="panel-title">&gt; APP USAGE MONITOR</div>
 
-      {/* Summary */}
       <div className="sp-stat-row">
         <div className="retro-card sp-stat">
           <div className="sp-stat-val">{total.toFixed(1)}h</div>
@@ -280,7 +271,6 @@ export default function AppUsage({ logs, setLogs }) {
         </div>
       </div>
 
-      {/* Horizontal bar chart per app */}
       <div className="retro-card sp-chart-wrap">
         <div className="sp-chart-title muted-text">APP BREAKDOWN</div>
         <div className="sp-hbar-list">
@@ -306,7 +296,6 @@ export default function AppUsage({ logs, setLogs }) {
         </div>
       </div>
 
-      {/* Add log */}
       <div className="sp-action-row">
         <button className="retro-btn solid" onClick={() => setShowForm(v => !v)}>
           {showForm ? '— CANCEL' : '+ LOG APP'}
@@ -340,7 +329,6 @@ export default function AppUsage({ logs, setLogs }) {
         </div>
       )}
 
-      {/* Log list */}
       <div className="sp-list">
         {logs.map(l => (
           <div key={l.id} className="retro-card sp-session-row">

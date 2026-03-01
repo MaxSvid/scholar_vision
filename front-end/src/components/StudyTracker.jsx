@@ -1,23 +1,22 @@
 import { useState, useRef, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 import './SubPanel.css'
 import './FileImport.css'
 import './HealthImport.css'
-
-function getSessionId() {
-  let id = sessionStorage.getItem('sv_session_id')
-  if (!id) { id = crypto.randomUUID(); sessionStorage.setItem('sv_session_id', id) }
-  return id
-}
 
 function fmtTime(iso) {
   return iso ? new Date(iso).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : '—'
 }
 
+function today() {
+  return new Date().toISOString().slice(0, 10)
+}
+
 export default function StudyTracker({ sessions, setSessions }) {
+  const { apiFetch } = useAuth()
   const [form, setForm] = useState({ subject: '', hours: '', date: today(), notes: '' })
   const [showForm, setShowForm] = useState(false)
 
-  // Import state
   const [imports,  setImports]  = useState([])
   const [summary,  setSummary]  = useState(null)
   const [dragging, setDragging] = useState(false)
@@ -25,18 +24,13 @@ export default function StudyTracker({ sessions, setSessions }) {
   const [error,    setError]    = useState(null)
   const [expanded, setExpanded] = useState(null)
   const [detail,   setDetail]   = useState(null)
-  const inputRef  = useRef()
-  const sessionId = getSessionId()
+  const inputRef = useRef()
 
-  useEffect(() => { fetchImports() }, [])
-
-  function today() {
-    return new Date().toISOString().slice(0, 10)
-  }
+  useEffect(() => { fetchImports() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchImports() {
     try {
-      const res  = await fetch(`/api/activity/study-logs?session_id=${sessionId}`)
+      const res  = await apiFetch('/api/activity/study-logs')
       if (!res.ok) return
       const data = await res.json()
       setImports(data.imports || [])
@@ -57,7 +51,7 @@ export default function StudyTracker({ sessions, setSessions }) {
     setError(null)
     setLoading(true)
     try {
-      const res = await fetch(`/api/activity/study-logs?session_id=${sessionId}`, {
+      const res = await apiFetch('/api/activity/study-logs', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    text,
@@ -92,7 +86,7 @@ export default function StudyTracker({ sessions, setSessions }) {
 
   const removeImport = async id => {
     if (expanded === id) { setExpanded(null); setDetail(null) }
-    try { await fetch(`/api/activity/study-logs/${id}`, { method: 'DELETE' }) } catch { /* best-effort */ }
+    try { await apiFetch(`/api/activity/study-logs/${id}`, { method: 'DELETE' }) } catch { /* best-effort */ }
     await fetchImports()
   }
 
@@ -100,13 +94,12 @@ export default function StudyTracker({ sessions, setSessions }) {
     if (expanded === id) { setExpanded(null); setDetail(null); return }
     setExpanded(id); setDetail(null)
     try {
-      const res  = await fetch(`/api/activity/study-logs/${id}`)
+      const res  = await apiFetch(`/api/activity/study-logs/${id}`)
       const data = await res.json()
       setDetail(data)
     } catch { setDetail({ error: 'Could not load detail' }) }
   }
 
-  // Combined stats: imported (from backend summary) + manually entered
   const importedHours    = summary?.total_hours    ?? 0
   const importedSessions = summary?.total_sessions ?? 0
   const manualHours      = sessions.reduce((s, x) => s + x.hours, 0)
@@ -123,7 +116,7 @@ export default function StudyTracker({ sessions, setSessions }) {
     if (!form.subject || !form.hours) return
     setLoading(true); setError(null)
     try {
-      const res = await fetch(`/api/activity/study-logs/manual?session_id=${sessionId}`, {
+      const res = await apiFetch('/api/activity/study-logs/manual', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subject: form.subject, hours: parseFloat(form.hours),
                                date: form.date, notes: form.notes }),
@@ -138,21 +131,20 @@ export default function StudyTracker({ sessions, setSessions }) {
 
   const removeSession = async id => {
     try {
-      await fetch(`/api/activity/study-logs/manual/${id}?session_id=${sessionId}`, { method: 'DELETE' })
+      await apiFetch(`/api/activity/study-logs/manual/${id}`, { method: 'DELETE' })
       await fetchImports()
       window.dispatchEvent(new CustomEvent('sv:data-imported'))
     } catch { /* best-effort */ }
   }
 
-  // Weekly bar chart — imported hours (from backend) merged with manually entered hours
   const importedByDate = Object.fromEntries(
     (summary?.last_7_days ?? []).map(d => [d.date, d.hours])
   )
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date()
     d.setDate(d.getDate() - (6 - i))
-    const key        = d.toISOString().slice(0, 10)
-    const manualHrs  = sessions.filter(s => s.date === key).reduce((a, s) => a + s.hours, 0)
+    const key         = d.toISOString().slice(0, 10)
+    const manualHrs   = sessions.filter(s => s.date === key).reduce((a, s) => a + s.hours, 0)
     const importedHrs = importedByDate[key] ?? 0
     return { label: d.toLocaleDateString('en', { weekday: 'short' }).toUpperCase(), hrs: manualHrs + importedHrs }
   })
@@ -244,7 +236,6 @@ export default function StudyTracker({ sessions, setSessions }) {
       {/* ── Manual Entry Section ────────────────────────────────────── */}
       <div className="panel-title">&gt; STUDY LOG</div>
 
-      {/* Summary row */}
       <div className="sp-stat-row">
         <div className="retro-card sp-stat">
           <div className="sp-stat-val">{totalHours.toFixed(1)}h</div>
@@ -260,7 +251,6 @@ export default function StudyTracker({ sessions, setSessions }) {
         </div>
       </div>
 
-      {/* Weekly bar chart */}
       <div className="retro-card sp-chart-wrap">
         <div className="sp-chart-title muted-text">LAST 7 DAYS</div>
         <div className="sp-bar-chart">
@@ -280,7 +270,6 @@ export default function StudyTracker({ sessions, setSessions }) {
         </div>
       </div>
 
-      {/* Add session */}
       <div className="sp-action-row">
         <button className="retro-btn solid" onClick={() => setShowForm(v => !v)}>
           {showForm ? '— CANCEL' : '+ LOG SESSION'}
@@ -322,7 +311,6 @@ export default function StudyTracker({ sessions, setSessions }) {
         </div>
       )}
 
-      {/* Session list */}
       <div className="sp-list">
         {sessions.map(s => (
           <div key={s.id} className="retro-card sp-session-row">

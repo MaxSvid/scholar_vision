@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { useAuth } from '../context/AuthContext'
 import './PeerGraph3D.css'
 
 // ─── DB ROW → PEER OBJECT ─────────────────────────────────────────────────────
@@ -577,13 +578,14 @@ function PeerDetail({ peer, onBack }) {
 
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────────
 export default function PeerGraph3D() {
+  const { apiFetch } = useAuth()
   const [focusedPeer, setFocusedPeer] = useState(null)
   const [peers,       setPeers]       = useState([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState(null)
 
   useEffect(() => {
-    fetch('/api/peers')
+    apiFetch('/api/peers')
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
@@ -591,7 +593,7 @@ export default function PeerGraph3D() {
       .then(data => setPeers((data.peers || []).map(transformPeer)))
       .catch(e  => setError(e.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [apiFetch])
 
   if (focusedPeer) {
     return <PeerDetail peer={focusedPeer} onBack={() => setFocusedPeer(null)} />

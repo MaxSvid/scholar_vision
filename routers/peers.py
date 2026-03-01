@@ -6,15 +6,19 @@ GET /api/peers   – return anonymised rows from cohort_students
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from database.execute import fetch_all
+from security import get_current_user
 
 router = APIRouter(prefix="/api/peers", tags=["peers"])
 
 
 @router.get("")
-async def list_peers(limit: int = Query(default=12, ge=1, le=100)):
+async def list_peers(
+    limit: int = Query(default=12, ge=1, le=100),
+    _: str = Depends(get_current_user),
+):
     """
     Return *limit* rows from cohort_students ordered by id.
     Columns returned match the DB schema exactly so the frontend

@@ -10,16 +10,17 @@ as null; the frontend substitutes its own defaults in those cases.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends
 
 from database.execute import fetch_one
 from ml_engine import engine
+from security import get_current_user
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
 
 @router.get("/baseline")
-async def get_baseline(session_id: str = Query(...)):
+async def get_baseline(session_id: str = Depends(get_current_user)):
     # ── Sleep hours — average of Apple Health sleep_analysis records ──────
     sleep_row = await fetch_one(
         """
@@ -189,7 +190,7 @@ async def get_baseline(session_id: str = Query(...)):
 
 
 @router.get("/overview")
-async def get_overview(session_id: str = Query(...)):
+async def get_overview(session_id: str = Depends(get_current_user)):
     """
     Aggregate snapshot for the Overview dashboard card row.
     All four values are derived from the session's imported data.
