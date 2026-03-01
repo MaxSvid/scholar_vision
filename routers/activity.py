@@ -44,6 +44,14 @@ class ManualAppEntry(BaseModel):
     category: str = 'Neutral'
 
 
+class ManualAttentionEntry(BaseModel):
+    duration: int       # minutes
+    breaks: int = 0
+    quality: str = 'Medium'   # 'High' | 'Medium' | 'Low'
+    date: str           # YYYY-MM-DD
+    source: str = 'manual'    # 'manual' | 'timer'
+
+
 # ── App Usage ─────────────────────────────────────────────────────────────────
 
 @router.post("/app-usage")
@@ -462,3 +470,69 @@ async def delete_study_import(import_id: str):
         raise HTTPException(404, "Import not found")
     await execute("DELETE FROM study_imports WHERE import_id = %s", (import_id,))
     return {"deleted": import_id}
+
+
+# ── Attention / Focus Sessions ────────────────────────────────────────────────
+
+@router.get("/attention")
+async def list_attention_entries(session_id: str = Query(...)):
+    rows = await fetch_all(
+        """
+        SELECT entry_id, duration_mins, breaks_taken, quality,
+               logged_date::text AS logged_date, source, created_at
+        FROM   attention_entries
+        WHERE  session_id = %s
+        ORDER  BY created_at DESC
+        """,
+        (session_id,),
+    )
+
+    entries = [dict(r) for r in rows]
+    total   = len(entries)
+    avg_span = round(sum(e["duration_mins"] for e in entries) / total) if total else 0
+    best     = max((e["duration_mins"] for e in entries), default=0)
+    high_q   = sum(1 for e in entries if e["quality"] == "High")
+
+    return {
+        "entries": entries,
+        "summary": {
+            "total_sessions":    total,
+            "avg_span_mins":     avg_span,
+            "best_mins":         best,
+            "high_quality_count": high_q,
+        },
+    }
+
+
+@router.post("/attention")
+async def add_attention_entry(body: ManualAttentionEntry, session_id: str = Query(...)):
+    try:
+        datetime.strptime(body.date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(422, "date must be YYYY-MM-DD")
+
+    quality = body.quality if body.quality in {"High", "Medium", "Low"} else "Medium"
+    source  = body.source  if body.source  in {"manual", "timer"}        else "manual"
+
+    row = await execute_returning(
+        """
+        INSERT INTO attention_entries
+            (session_id, duration_mins, breaks_taken, quality, logged_date, source)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING entry_id
+        """,
+        (session_id, max(1, body.duration), max(0, body.breaks), quality, body.date, source),
+    )
+    return {"entry_id": row["entry_id"]}
+
+
+@router.delete("/attention/{entry_id}")
+async def delete_attention_entry(entry_id: int, session_id: str = Query(...)):
+    row = await fetch_one(
+        "SELECT entry_id FROM attention_entries WHERE entry_id = %s AND session_id = %s",
+        (entry_id, session_id),
+    )
+    if not row:
+        raise HTTPException(404, "Attention entry not found")
+    await execute("DELETE FROM attention_entries WHERE entry_id = %s", (entry_id,))
+    return {"deleted": entry_id}

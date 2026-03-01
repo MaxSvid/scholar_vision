@@ -393,6 +393,24 @@ CREATE TABLE study_entries (
 
 CREATE INDEX idx_study_entries_import ON study_entries(import_id);
 
+-- ============================================================
+--  SECTION 13 — ATTENTION / FOCUS SESSION ENTRIES
+-- ============================================================
+
+CREATE TABLE attention_entries (
+    entry_id      SERIAL      PRIMARY KEY,
+    session_id    VARCHAR(64) NOT NULL,
+    duration_mins INT         NOT NULL CHECK (duration_mins >= 1),
+    breaks_taken  INT         NOT NULL DEFAULT 0,
+    quality       VARCHAR(20) NOT NULL DEFAULT 'Medium',   -- 'High' | 'Medium' | 'Low'
+    logged_date   DATE        NOT NULL,
+    source        VARCHAR(20) NOT NULL DEFAULT 'manual',   -- 'manual' | 'timer'
+    created_at    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_attention_entries_session ON attention_entries(session_id);
+
+
 -- 8.3  Improvement recommendations  (generated from XAI output)
 CREATE TABLE improvement_recommendations (
     rec_id          SERIAL    PRIMARY KEY,

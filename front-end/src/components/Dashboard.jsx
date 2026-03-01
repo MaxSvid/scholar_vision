@@ -21,17 +21,10 @@ const TABS = [
   { id: 'health',      label: 'Health',      icon: '♡' },
 ]
 
-const INIT_ATT_SESSIONS = [
-  { id: 1, duration: 45, breaks: 2, quality: 'High',   date: '2026-02-27' },
-  { id: 2, duration: 25, breaks: 1, quality: 'Medium', date: '2026-02-26' },
-  { id: 3, duration: 60, breaks: 3, quality: 'High',   date: '2026-02-25' },
-]
-
 export default function Dashboard({ user, onLogout }) {
   const [tab, setTab] = useState('overview')
   const [studySessions, setStudySessions] = useState([])
   const [appLogs,       setAppLogs]       = useState([])
-  const [attSessions,   setAttSessions]   = useState(INIT_ATT_SESSIONS)
   const [healthMetrics, setHealthMetrics] = useState([])
 
   useEffect(() => {
@@ -86,14 +79,14 @@ export default function Dashboard({ user, onLogout }) {
           {tab === 'overview'   && <OverviewPanel user={user} setTab={setTab} />}
           {tab === 'study'      && <StudyTracker sessions={studySessions} setSessions={setStudySessions} />}
           {tab === 'apps'       && <AppUsage logs={appLogs} setLogs={setAppLogs} />}
-          {tab === 'attention'  && <AttentionSpan sessions={attSessions} setSessions={setAttSessions} />}
+          {tab === 'attention'  && <AttentionSpan />}
           {tab === 'prediction' && <PredictionPanel user={user} />}
           {tab === 'graph3d'    && (
             <DataGraph3D
               user={user}
               studySessions={studySessions}
               appLogs={appLogs}
-              attSessions={attSessions}
+              attSessions={[]}
               healthMetrics={healthMetrics}
             />
           )}
