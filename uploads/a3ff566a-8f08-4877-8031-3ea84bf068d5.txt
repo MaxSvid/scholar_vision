@@ -1,0 +1,9 @@
+Semester	Course Code	Course Title	Score (%)	Mark	Grade
+3	CS201	Data Structures & Algorithms	88	88/100	A
+3	CS202	Computer Organization	76	76/100	B+
+3	MA210	Discrete Mathematics	92	92/100	A+
+3	CS203	Object-Oriented Programming	84	84/100	A-
+4	CS204	Operating Systems	81	81/100	A-
+4	CS205	Database Management Systems	89	89/100	A
+4	CS206	Theory of Computation	72	72/100	B
+4	CS207	Software Engineering	85	85/100	A

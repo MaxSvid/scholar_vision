@@ -75,26 +75,17 @@ def main() -> None:
     print("  Creating cohort_students table (if not exists)…")
     sync_create_table()
 
-    # Check existing rows
+    # Always truncate before inserting so the ML models train on fresh data
     count = sync_count()
-    if count > 0 and not args.force:
-        print(f"  ✓ Table already contains {count} rows. Use --force to re-seed.")
-        return
-
-    if args.force and count > 0:
-        print(f"  --force: truncating {count} existing rows…")
+    if count > 0:
+        print(f"  Truncating {count} existing rows…")
         sync_truncate()
 
-    # Generate / load CSV
-    if CSV_PATH.exists():
-        import pandas as pd
-        df = pd.read_csv(CSV_PATH)
-        print(f"  Loaded {len(df)} rows from {CSV_PATH.name}.")
-    else:
-        print("  CSV not found — generating synthetic cohort (n=1,000)…")
-        df = generate(n=1_000)
-        df.to_csv(CSV_PATH, index=False)
-        print(f"  Saved to {CSV_PATH}.")
+    # Always regenerate — never reuse a stale CSV
+    print("  Generating holistic-tiered synthetic cohort (n=1,000)…")
+    df = generate(n=1_000)
+    df.to_csv(CSV_PATH, index=False)
+    print(f"  Saved to {CSV_PATH.name}.")
 
     # Bulk insert
     print(f"  Inserting {len(df)} rows into cohort_students…")
