@@ -28,9 +28,9 @@ from pathlib import Path
 TIERS = {
     "A": {
         "weight":      0.15,
-        "study":       (6.5, 0.8),    # h/day
+        "study":       (5, 0.8),    # h/day
         "attention":   (75,  10),     # min
-        "focus":       (90,  5),      # %
+        "focus":       (70,  5),      # %
         "sleep":       (8.0, 0.5),    # h/night
         "breaks":      (1.0, 0.5),    # per session
         "grade":       (88,  4),      # numeric score
@@ -41,7 +41,7 @@ TIERS = {
         "weight":      0.35,
         "study":       (4.5, 0.8),
         "attention":   (50,  10),
-        "focus":       (75,  8),
+        "focus":       (50,  8),
         "sleep":       (7.0, 0.7),
         "breaks":      (2.0, 0.7),
         "grade":       (76,  4),
@@ -52,7 +52,7 @@ TIERS = {
         "weight":      0.35,
         "study":       (3.0, 0.8),
         "attention":   (35,  10),
-        "focus":       (60,  8),
+        "focus":       (30,  8),
         "sleep":       (6.0, 0.8),
         "breaks":      (3.0, 0.8),
         "grade":       (63,  4),
@@ -63,7 +63,7 @@ TIERS = {
         "weight":      0.15,          # fills remainder
         "study":       (1.5, 0.8),
         "attention":   (15,  7),
-        "focus":       (40,  10),
+        "focus":       (10,  10),
         # sleep: bimodal — half deprived (~4h), half oversleeping (~11h)
         "sleep_low":   (4.0, 0.7),   # deprived branch
         "sleep_high":  (10.5, 0.8),  # oversleeping branch
