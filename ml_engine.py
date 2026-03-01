@@ -151,10 +151,10 @@ class MLEngine:
     def _score_to_grade(self, score: float) -> str:
         s = round(score)
         if s >= 90: return "A+"
-        if s >= 80: return "A"
-        if s >= 70: return "B"
-        if s >= 60: return "C"
-        if s >= 50: return "D"
+        if s >= 70: return "A"
+        if s >= 55: return "B"
+        if s >= 40: return "C"
+        if s >= 25: return "D"
         return "F"
 
     def _bar(self, v: float, max_v: float, width: int = 12) -> str:
@@ -192,8 +192,8 @@ class MLEngine:
 
         grade  = self._score_to_grade(score)
         trend  = (
-            "↑ ON TRACK — EXCELLENT TRAJECTORY" if score >= 80 else
-            "→ STABLE — ROOM TO IMPROVE"         if score >= 65 else
+            "↑ ON TRACK — EXCELLENT TRAJECTORY" if score >= 70 else
+            "→ STABLE — ROOM TO IMPROVE"         if score >= 55 else
             "↓ AT RISK — INTERVENTION REQUIRED"
         )
         lines.append(f"\nPREDICTED SCORE:  {score:.0f} / 100  [{grade}]")
