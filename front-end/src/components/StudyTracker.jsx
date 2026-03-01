@@ -3,8 +3,6 @@ import './SubPanel.css'
 import './FileImport.css'
 import './HealthImport.css'
 
-const SUBJECTS = ['Mathematics', 'Physics', 'Programming', 'Literature', 'History', 'Chemistry', 'Economics', 'Other']
-
 function getSessionId() {
   let id = sessionStorage.getItem('sv_session_id')
   if (!id) { id = crypto.randomUUID(); sessionStorage.setItem('sv_session_id', id) }
@@ -43,6 +41,15 @@ export default function StudyTracker({ sessions, setSessions }) {
       const data = await res.json()
       setImports(data.imports || [])
       setSummary(data.summary  || null)
+      setSessions(
+        (data.manual_entries || []).map(e => ({
+          id:      e.entry_id,
+          subject: e.subject_tag || '',
+          hours:   +(e.duration_mins / 60).toFixed(2),
+          date:    String(e.logged_date),
+          notes:   e.notes || '',
+        }))
+      )
     } catch { /* backend offline */ }
   }
 
@@ -107,17 +114,35 @@ export default function StudyTracker({ sessions, setSessions }) {
   const totalSessions    = importedSessions + sessions.length
   const avgHours         = totalSessions ? (totalHours / totalSessions).toFixed(1) : 0
 
-  const addSession = () => {
+  const usedSubjects = [...new Set([
+    ...(summary?.subjects ?? []),
+    ...sessions.map(s => s.subject).filter(Boolean),
+  ])]
+
+  const addSession = async () => {
     if (!form.subject || !form.hours) return
-    setSessions(prev => [
-      { ...form, id: Date.now(), hours: parseFloat(form.hours) },
-      ...prev,
-    ])
-    setForm({ subject: '', hours: '', date: today(), notes: '' })
-    setShowForm(false)
+    setLoading(true); setError(null)
+    try {
+      const res = await fetch(`/api/activity/study-logs/manual?session_id=${sessionId}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: form.subject, hours: parseFloat(form.hours),
+                               date: form.date, notes: form.notes }),
+      })
+      if (!res.ok) throw new Error(`Server error (${res.status})`)
+      await fetchImports()
+      window.dispatchEvent(new CustomEvent('sv:data-imported'))
+      setForm({ subject: '', hours: '', date: today(), notes: '' })
+      setShowForm(false)
+    } catch (e) { setError(e.message) } finally { setLoading(false) }
   }
 
-  const removeSession = id => setSessions(prev => prev.filter(s => s.id !== id))
+  const removeSession = async id => {
+    try {
+      await fetch(`/api/activity/study-logs/manual/${id}?session_id=${sessionId}`, { method: 'DELETE' })
+      await fetchImports()
+      window.dispatchEvent(new CustomEvent('sv:data-imported'))
+    } catch { /* best-effort */ }
+  }
 
   // Weekly bar chart — imported hours (from backend) merged with manually entered hours
   const importedByDate = Object.fromEntries(
@@ -267,11 +292,16 @@ export default function StudyTracker({ sessions, setSessions }) {
           <div className="sp-form-row">
             <div className="sp-form-col">
               <label className="field-label">SUBJECT</label>
-              <select className="retro-input" value={form.subject}
-                onChange={e => setForm(p => ({ ...p, subject: e.target.value }))}>
-                <option value="">-- SELECT --</option>
-                {SUBJECTS.map(s => <option key={s}>{s}</option>)}
-              </select>
+              <input
+                className="retro-input"
+                list="study-subject-suggestions"
+                placeholder="e.g. Mathematics"
+                value={form.subject}
+                onChange={e => setForm(p => ({ ...p, subject: e.target.value }))}
+              />
+              <datalist id="study-subject-suggestions">
+                {usedSubjects.map(s => <option key={s} value={s} />)}
+              </datalist>
             </div>
             <div className="sp-form-col">
               <label className="field-label">HOURS</label>

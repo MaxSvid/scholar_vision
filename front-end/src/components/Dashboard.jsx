@@ -21,18 +21,6 @@ const TABS = [
   { id: 'health',      label: 'Health',      icon: '♡' },
 ]
 
-const INIT_STUDY_SESSIONS = [
-  { id: 1, subject: 'Mathematics', hours: 2.5, date: '2026-02-27', notes: 'Calculus revision' },
-  { id: 2, subject: 'Programming', hours: 3,   date: '2026-02-26', notes: 'Data structures assignment' },
-]
-
-const INIT_APP_LOGS = [
-  { id: 1, app: 'VS Code',  hours: 3.5, category: 'Productive',  date: '2026-02-27' },
-  { id: 2, app: 'TikTok',   hours: 1.2, category: 'Distracting', date: '2026-02-27' },
-  { id: 3, app: 'Anki',     hours: 0.8, category: 'Productive',  date: '2026-02-26' },
-  { id: 4, app: 'Netflix',  hours: 2.0, category: 'Distracting', date: '2026-02-26' },
-]
-
 const INIT_ATT_SESSIONS = [
   { id: 1, duration: 45, breaks: 2, quality: 'High',   date: '2026-02-27' },
   { id: 2, duration: 25, breaks: 1, quality: 'Medium', date: '2026-02-26' },
@@ -41,8 +29,8 @@ const INIT_ATT_SESSIONS = [
 
 export default function Dashboard({ user, onLogout }) {
   const [tab, setTab] = useState('overview')
-  const [studySessions, setStudySessions] = useState(INIT_STUDY_SESSIONS)
-  const [appLogs,       setAppLogs]       = useState(INIT_APP_LOGS)
+  const [studySessions, setStudySessions] = useState([])
+  const [appLogs,       setAppLogs]       = useState([])
   const [attSessions,   setAttSessions]   = useState(INIT_ATT_SESSIONS)
   const [healthMetrics, setHealthMetrics] = useState([])
 

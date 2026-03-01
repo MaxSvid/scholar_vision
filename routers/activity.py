@@ -14,7 +14,10 @@ DELETE /api/activity/study-logs/{id}            – delete import + cascade
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, HTTPException, Query, Request
+from pydantic import BaseModel
 
 from database.execute import execute, execute_returning, fetch_all, fetch_one
 from parsers.app_usage_parser import parse_app_usage_json, summarise_app_usage
@@ -23,6 +26,22 @@ from parsers.study_parser import parse_study_json
 router = APIRouter(prefix="/api/activity", tags=["activity"])
 
 MAX_BODY_BYTES = 5 * 1024 * 1024  # 5 MB
+
+VALID_CATEGORIES = {"Productive", "Neutral", "Distracting"}
+
+
+class ManualStudyEntry(BaseModel):
+    subject: str = ''
+    hours: float
+    date: str      # YYYY-MM-DD
+    notes: str = ''
+
+
+class ManualAppEntry(BaseModel):
+    app: str
+    hours: float
+    date: str      # YYYY-MM-DD
+    category: str = 'Neutral'
 
 
 # ── App Usage ─────────────────────────────────────────────────────────────────
@@ -78,6 +97,7 @@ async def list_app_usage_imports(session_id: str = Query(...)):
         SELECT import_id, sync_timestamp, client_version, log_count, imported_at
         FROM   app_usage_imports
         WHERE  session_id = %s
+          AND  client_version IS DISTINCT FROM 'manual'
         ORDER  BY imported_at DESC
         """,
         (session_id,),
@@ -108,6 +128,18 @@ async def list_app_usage_imports(session_id: str = Query(...)):
         (session_id,),
     )
 
+    manual_entries = await fetch_all(
+        """
+        SELECT ae.entry_id, ae.app_name, ae.category, ae.duration_mins,
+               ae.logged_date::text AS logged_date
+        FROM app_usage_entries ae
+        JOIN app_usage_imports ai ON ai.import_id = ae.import_id
+        WHERE ai.session_id = %s AND ai.client_version = 'manual'
+        ORDER BY ae.logged_date DESC, ae.entry_id DESC
+        """,
+        (session_id,),
+    )
+
     return {
         "imports": rows,
         "summary": {
@@ -119,7 +151,61 @@ async def list_app_usage_imports(session_id: str = Query(...)):
                 for a in by_app
             ],
         },
+        "manual_entries": [dict(e) for e in manual_entries],
     }
+
+
+@router.post("/app-usage/manual")
+async def add_manual_app_entry(body: ManualAppEntry, session_id: str = Query(...)):
+    try:
+        datetime.strptime(body.date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(422, "date must be YYYY-MM-DD")
+
+    category = body.category if body.category in VALID_CATEGORIES else "Neutral"
+    duration_mins = max(1, int(body.hours * 60))
+
+    import_row = await execute_returning(
+        """
+        INSERT INTO app_usage_imports
+            (session_id, sync_timestamp, client_version, log_count)
+        VALUES (%s, NOW(), 'manual', 1)
+        RETURNING import_id
+        """,
+        (session_id,),
+    )
+    import_id = import_row["import_id"]
+
+    entry_row = await execute_returning(
+        """
+        INSERT INTO app_usage_entries
+            (import_id, app_name, category, duration_mins, logged_date)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING entry_id
+        """,
+        (import_id, body.app, category, duration_mins, body.date),
+    )
+    return {"entry_id": entry_row["entry_id"], "import_id": str(import_id)}
+
+
+@router.delete("/app-usage/manual/{entry_id}")
+async def delete_manual_app_entry(entry_id: int, session_id: str = Query(...)):
+    entry = await fetch_one(
+        """
+        SELECT ae.entry_id, ae.import_id, ai.client_version
+        FROM app_usage_entries ae
+        JOIN app_usage_imports ai ON ai.import_id = ae.import_id
+        WHERE ae.entry_id = %s AND ai.session_id = %s
+        """,
+        (entry_id, session_id),
+    )
+    if not entry or entry["client_version"] != "manual":
+        raise HTTPException(404, "Manual entry not found")
+
+    import_id = entry["import_id"]
+    await execute("DELETE FROM app_usage_entries WHERE entry_id = %s", (entry_id,))
+    await execute("DELETE FROM app_usage_imports WHERE import_id = %s", (import_id,))
+    return {"deleted": entry_id}
 
 
 @router.get("/app-usage/{import_id}")
@@ -209,6 +295,7 @@ async def list_study_imports(session_id: str = Query(...)):
         SELECT import_id, sync_timestamp, client_version, session_count, imported_at
         FROM   study_imports
         WHERE  session_id = %s
+          AND  client_version IS DISTINCT FROM 'manual'
         ORDER  BY imported_at DESC
         """,
         (session_id,),
@@ -238,6 +325,31 @@ async def list_study_imports(session_id: str = Query(...)):
         (session_id,),
     )
 
+    subject_rows = await fetch_all(
+        """
+        SELECT DISTINCT se.subject_tag
+        FROM study_entries se
+        JOIN study_imports si ON si.import_id = se.import_id
+        WHERE si.session_id = %s
+          AND se.subject_tag IS NOT NULL
+          AND se.subject_tag <> ''
+        ORDER BY se.subject_tag
+        """,
+        (session_id,),
+    )
+
+    manual_entries = await fetch_all(
+        """
+        SELECT se.entry_id, se.subject_tag, se.duration_mins,
+               se.started_at::date::text AS logged_date, se.notes
+        FROM study_entries se
+        JOIN study_imports si ON si.import_id = se.import_id
+        WHERE si.session_id = %s AND si.client_version = 'manual'
+        ORDER BY se.started_at DESC
+        """,
+        (session_id,),
+    )
+
     total_sessions = int(stats["total_sessions"]) if stats else 0
     total_mins     = int(stats["total_mins"])      if stats else 0
     total_hours    = round(total_mins / 60, 1)
@@ -252,8 +364,64 @@ async def list_study_imports(session_id: str = Query(...)):
                 {"date": str(d["day"]), "hours": float(d["hours"])}
                 for d in daily
             ],
+            "subjects": [r["subject_tag"] for r in subject_rows],
         },
+        "manual_entries": [dict(e) for e in manual_entries],
     }
+
+
+@router.post("/study-logs/manual")
+async def add_manual_study_entry(body: ManualStudyEntry, session_id: str = Query(...)):
+    try:
+        parsed_date = datetime.strptime(body.date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(422, "date must be YYYY-MM-DD")
+
+    duration_mins = max(1, int(body.hours * 60))
+    started_at = parsed_date.replace(hour=9, minute=0, second=0)
+    ended_at   = started_at + timedelta(minutes=duration_mins)
+
+    import_row = await execute_returning(
+        """
+        INSERT INTO study_imports
+            (session_id, sync_timestamp, client_version, session_count)
+        VALUES (%s, NOW(), 'manual', 1)
+        RETURNING import_id
+        """,
+        (session_id,),
+    )
+    import_id = import_row["import_id"]
+
+    entry_row = await execute_returning(
+        """
+        INSERT INTO study_entries
+            (import_id, started_at, ended_at, duration_mins, subject_tag, breaks_taken, notes)
+        VALUES (%s, %s, %s, %s, %s, 0, %s)
+        RETURNING entry_id
+        """,
+        (import_id, started_at, ended_at, duration_mins, body.subject or None, body.notes or None),
+    )
+    return {"entry_id": entry_row["entry_id"], "import_id": str(import_id)}
+
+
+@router.delete("/study-logs/manual/{entry_id}")
+async def delete_manual_study_entry(entry_id: int, session_id: str = Query(...)):
+    entry = await fetch_one(
+        """
+        SELECT se.entry_id, se.import_id, si.client_version
+        FROM study_entries se
+        JOIN study_imports si ON si.import_id = se.import_id
+        WHERE se.entry_id = %s AND si.session_id = %s
+        """,
+        (entry_id, session_id),
+    )
+    if not entry or entry["client_version"] != "manual":
+        raise HTTPException(404, "Manual entry not found")
+
+    import_id = entry["import_id"]
+    await execute("DELETE FROM study_entries WHERE entry_id = %s", (entry_id,))
+    await execute("DELETE FROM study_imports WHERE import_id = %s", (import_id,))
+    return {"deleted": entry_id}
 
 
 @router.get("/study-logs/{import_id}")

@@ -52,6 +52,15 @@ export default function AppUsage({ logs, setLogs }) {
       const data = await res.json()
       setImports(data.imports || [])
       setSummary(data.summary  || null)
+      setLogs(
+        (data.manual_entries || []).map(e => ({
+          id:       e.entry_id,
+          app:      e.app_name,
+          hours:    +(e.duration_mins / 60).toFixed(2),
+          date:     String(e.logged_date),
+          category: e.category,
+        }))
+      )
     } catch { /* backend offline */ }
   }
 
@@ -132,12 +141,30 @@ export default function AppUsage({ logs, setLogs }) {
   const byApp  = Object.values(appMap).sort((a, b) => b.hours - a.hours)
   const maxApp = byApp[0]?.hours || 1
 
-  const addLog = () => {
+  const addLog = async () => {
     if (!form.app || !form.hours) return
     const category = getCategory(form.app)
-    setLogs(prev => [{ ...form, id: Date.now(), hours: parseFloat(form.hours), category }, ...prev])
-    setForm({ app: '', hours: '', date: new Date().toISOString().slice(0, 10) })
-    setShowForm(false)
+    setLoading(true); setError(null)
+    try {
+      const res = await fetch(`/api/activity/app-usage/manual?session_id=${sessionId}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ app: form.app, hours: parseFloat(form.hours),
+                               date: form.date, category }),
+      })
+      if (!res.ok) throw new Error(`Server error (${res.status})`)
+      await fetchImports()
+      window.dispatchEvent(new CustomEvent('sv:data-imported'))
+      setForm({ app: '', hours: '', date: new Date().toISOString().slice(0, 10) })
+      setShowForm(false)
+    } catch (e) { setError(e.message) } finally { setLoading(false) }
+  }
+
+  const removeLog = async id => {
+    try {
+      await fetch(`/api/activity/app-usage/manual/${id}?session_id=${sessionId}`, { method: 'DELETE' })
+      await fetchImports()
+      window.dispatchEvent(new CustomEvent('sv:data-imported'))
+    } catch { /* best-effort */ }
   }
 
   const catColor = cat =>
@@ -325,6 +352,7 @@ export default function AppUsage({ logs, setLogs }) {
               {l.category.toUpperCase()}
             </span>
             <span className="muted-text" style={{ fontSize: '0.72rem' }}>{l.date}</span>
+            <button className="sp-delete muted-text" onClick={() => removeLog(l.id)}>✕</button>
           </div>
         ))}
       </div>
