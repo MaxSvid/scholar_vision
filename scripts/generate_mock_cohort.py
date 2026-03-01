@@ -32,8 +32,8 @@ TIERS = {
         "focus":       (70,  5),      # %
         "sleep":       (8.0, 0.5),    # h/night
         "breaks":      (1.0, 0.5),    # per session
-        "grade":       (88,  4),      # numeric score
-        "grade_lo":    80,
+        "grade":       (82,  4),      # numeric score
+        "grade_lo":    70,
         "grade_hi":    100,
     },
     "B": {
@@ -43,9 +43,9 @@ TIERS = {
         "focus":       (50,  8),
         "sleep":       (7.0, 0.7),
         "breaks":      (2.0, 0.7),
-        "grade":       (76,  4),
-        "grade_lo":    65,
-        "grade_hi":    79,
+        "grade":       (62,  3),
+        "grade_lo":    55,
+        "grade_hi":    69,
     },
     "C": {
         "weight":      0.35,
@@ -54,9 +54,9 @@ TIERS = {
         "focus":       (30,  8),
         "sleep":       (6.0, 0.8),
         "breaks":      (3.0, 0.8),
-        "grade":       (63,  4),
-        "grade_lo":    50,
-        "grade_hi":    64,
+        "grade":       (47,  3),
+        "grade_lo":    40,
+        "grade_hi":    54,
     },
     "DF": {
         "weight":      0.15,          # fills remainder
@@ -67,9 +67,9 @@ TIERS = {
         "sleep_low":   (4.0, 0.7),   # deprived branch
         "sleep_high":  (10.5, 0.8),  # oversleeping branch
         "breaks":      (4.5, 1.2),
-        "grade":       (42,  6),
+        "grade":       (22,  5),
         "grade_lo":    0,
-        "grade_hi":    49,
+        "grade_hi":    39,
     },
 }
 
@@ -144,6 +144,6 @@ if __name__ == "__main__":
     print(f"Saved {len(df)} rows → {out}")
     print(df.describe().round(2))
     print("\nGrade distribution (approx letter tiers):")
-    bins   = [0, 50, 65, 80, 101]
-    labels = ["D/F (<50)", "C (50-64)", "B (65-79)", "A (80-100)"]
+    bins   = [0, 40, 55, 70, 101]
+    labels = ["D/F (<40)", "C (40-54)", "B (55-69)", "A (70-100)"]
     print(pd.cut(df["currentGrade"], bins=bins, labels=labels).value_counts().sort_index())

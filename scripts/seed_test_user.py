@@ -126,17 +126,7 @@ def seed(conn: psycopg.Connection) -> str:
         ),
     )
 
-    # 3. Cohort entry
-    print("  [3/7] Inserting cohort entry…")
-    conn.execute(
-        """
-        INSERT INTO cohort_students
-            (study_hours, attention_span, focus_ratio, sleep_hours,
-             break_freq, current_grade)
-        VALUES (%s, %s, %s, %s, %s, %s)
-        """,
-        (6.5, 47.0, 72.0, 7.3, 2.3, 74.5),
-    )
+    # 3. Cohort entry — computed after log inserts, see step 8 below.
 
     # 4. Apple Health metrics
     print("  [4/7] Inserting Apple Health metrics (35 records)…")
@@ -387,6 +377,88 @@ def seed(conn: psycopg.Connection) -> str:
                 dur_mins, subject, breaks, notes,
             ),
         )
+
+    # ── 8. Cohort entry — derived from actual inserted logs ───────────────────
+    print("  [8/8] Computing cohort_students metrics from inserted logs…")
+
+    try:
+        # Average daily study hours
+        row = conn.execute(
+            """
+            SELECT SUM(duration_mins)                          AS total_mins,
+                   COUNT(DISTINCT DATE(started_at))            AS days
+            FROM study_entries WHERE import_id = %s
+            """,
+            (study_import_id,),
+        ).fetchone()
+        total_mins     = row["total_mins"] or 0
+        days           = row["days"]       or 1
+        avg_study_hours = round(total_mins / 60.0 / days, 1)
+
+        # Average attention span: duration / (breaks + 1) per session
+        row = conn.execute(
+            """
+            SELECT AVG(duration_mins / (breaks_taken + 1.0)) AS avg_att
+            FROM study_entries WHERE import_id = %s
+            """,
+            (study_import_id,),
+        ).fetchone()
+        avg_attention = round(row["avg_att"]) if row["avg_att"] is not None else 44
+
+        # Average sleep hours (sleep_analysis records only)
+        row = conn.execute(
+            """
+            SELECT AVG(value_num) AS avg_sleep
+            FROM health_metrics
+            WHERE import_id = %s AND type = 'sleep_analysis'
+            """,
+            (health_import_id,),
+        ).fetchone()
+        avg_sleep = round(row["avg_sleep"], 1) if row["avg_sleep"] is not None else 7.6
+
+        # Focus ratio: productive minutes / total minutes × 100
+        row = conn.execute(
+            """
+            SELECT SUM(CASE WHEN category = 'Productive' THEN duration_mins ELSE 0 END) AS prod,
+                   SUM(duration_mins)                                                     AS total
+            FROM app_usage_entries WHERE import_id = %s
+            """,
+            (app_import_id,),
+        ).fetchone()
+        if row["total"] and row["total"] > 0:
+            focus_ratio = round(100.0 * row["prod"] / row["total"], 1)
+        else:
+            focus_ratio = 58.2
+
+        # Average breaks per session
+        row = conn.execute(
+            "SELECT AVG(breaks_taken) AS avg_breaks FROM study_entries WHERE import_id = %s",
+            (study_import_id,),
+        ).fetchone()
+        avg_breaks = round(row["avg_breaks"], 1) if row["avg_breaks"] is not None else 1.8
+
+    except Exception as exc:
+        print(f"  ⚠  Metric computation failed ({exc}); using fallback values.")
+        avg_study_hours = 4.1
+        avg_attention   = 44
+        avg_sleep       = 7.6
+        focus_ratio     = 58.2
+        avg_breaks      = 1.8
+
+    current_grade = 74.5
+
+    conn.execute(
+        """
+        INSERT INTO cohort_students
+            (study_hours, attention_span, focus_ratio, sleep_hours,
+             break_freq, current_grade)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """,
+        (avg_study_hours, avg_attention, focus_ratio, avg_sleep, avg_breaks, current_grade),
+    )
+
+    print(f"     study={avg_study_hours}h  attention={avg_attention}min  "
+          f"focus={focus_ratio}%  sleep={avg_sleep}h  breaks={avg_breaks}  grade={current_grade}")
 
     conn.commit()
     return user_id
