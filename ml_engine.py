@@ -55,9 +55,12 @@ def _generate_data(n: int = 1_000, seed: int = 42) -> pd.DataFrame:
     breakFreq     = np.clip(rng.normal(3.0, 2.0, n), 0, 10).round(1)
     focusRatio    = np.clip(studyHours * 4.8 + rng.normal(26, 18, n), 0, 100).round(1)
     attentionSpan = np.clip(focusRatio * 0.55 + sleepHours * 3.8 + rng.normal(12, 20, n), 5, 120).round(0)
+    # Focus ratio is the highest influence (0.8 weight), with progressive sleep penalty for low sleep
+    sleep_penalty = np.maximum(0, 7 - sleepHours) * 3.5  # Drastic penalty for sleep < 7h
     currentGrade  = np.clip(
-        studyHours * 3.2 + attentionSpan * 0.18 + focusRatio * 0.28
-        + sleepHours * 2.2 + breakFreq * 0.6
+        studyHours * 2.5 + attentionSpan * 0.15 + focusRatio * 0.8
+        + sleepHours * 1.8 + breakFreq * 0.5
+        - sleep_penalty
         + rng.normal(0, 8, n) - 15,
         0, 100,
     ).round(1)
