@@ -1,30 +1,12 @@
 # ScholarVision
 
-AI-Driven Student Personal Assistant — RGU Hack '26
+AI-Driven Student Personal Assistant - RGU Hack '26
 
 Scholar Vision uses a quantifiable approach to map your academic journey against successful peers, predict your grade trajectory, and give you actionable advice powered by real ML models.
 
 ---
 
-## Quick Start
-
-```bash
-# Run locally (backend + serves built frontend)
-uv run uvicorn main:app --reload
-
-# Run everything via Docker (recommended)
-docker-compose up --build
-```
-
-- Local: **http://localhost:8000**
-- Docker: **http://localhost:8000** (frontend + API in one container)
-- API docs: **http://localhost:8000/docs**
-- pgAdmin: **http://localhost:{PGADMIN_PORT_HOST}**
-
-> To add a Python dependency: `uv add <package>`
-> uv docs: https://docs.astral.sh/uv/
-
----
+More information in the [presentation tutorial](PRESENTATION.md)
 
 ## Project Structure
 

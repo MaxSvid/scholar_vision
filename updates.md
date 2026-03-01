@@ -1,3 +1,5 @@
+Need to check ionos on VPS Firewall or Network Security for pgadmin4 vectors
+
 ❯ i need later git pull what he did in here and setup final project for deployment   
 
 ● Got it. When your teammate is done, on your local machine:
