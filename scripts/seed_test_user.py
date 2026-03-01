@@ -378,7 +378,7 @@ def seed(conn: psycopg.Connection) -> str:
             ),
         )
 
-    # ── 8. Cohort entry — derived from actual inserted logs ───────────────────
+    # 8. Cohort entry — derived from actual inserted logs
     print("  [8/8] Computing cohort_students metrics from inserted logs…")
 
     try:

@@ -45,7 +45,6 @@ FEATURE_UNITS = {
 MODELS_DIR = Path("models")
 CSV_PATH   = Path("mock_cohort_data.csv")
 
-
 # Data generation (inline, mirrors scripts/generate_mock_cohort.py)
 
 def _generate_data(n: int = 1_000, seed: int = 42) -> pd.DataFrame:
@@ -70,7 +69,6 @@ def _generate_data(n: int = 1_000, seed: int = 42) -> pd.DataFrame:
         "breakFreq": breakFreq,   "currentGrade": currentGrade,
     })
 
-
 # Engine
 
 class MLEngine:
@@ -81,8 +79,7 @@ class MLEngine:
         self.scaler:   StandardScaler         | None = None
         self.train_df: pd.DataFrame           | None = None
 
-    # ── Lifecycle 
-
+    # Lifecycle
     def ensure_ready(self):
         MODELS_DIR.mkdir(exist_ok=True)
         if self._models_exist():
@@ -109,8 +106,7 @@ class MLEngine:
         df.to_csv(CSV_PATH, index=False)
         return df
 
-    # ── Training 
-
+    # Training
     def _train_and_save(self):
         df = self._get_data()
         X  = df[FEATURES].values
@@ -135,16 +131,14 @@ class MLEngine:
         joblib.dump(self.rf,                       MODELS_DIR / "rf.joblib")
         df.to_csv(MODELS_DIR / "train_data.csv",  index=False)
 
-    # ── Loading ───────────────────────────────────────────────────
-
+    # Loading
     def _load(self):
         self.dt                = joblib.load(MODELS_DIR / "dt.joblib")
         self.knn, self.scaler  = joblib.load(MODELS_DIR / "knn.joblib")
         self.rf                = joblib.load(MODELS_DIR / "rf.joblib")
         self.train_df          = pd.read_csv(MODELS_DIR / "train_data.csv")
 
-    # ── Helpers ───────────────────────────────────────────────────
-
+    # Helpers
     def _X(self, values: dict) -> np.ndarray:
         return np.array([[values[f] for f in FEATURES]])
 
@@ -161,8 +155,7 @@ class MLEngine:
         filled = round(abs(v) / max_v * width) if max_v else 0
         return "█" * filled
 
-    # ── Inference ─────────────────────────────────────────────────
-
+    # Inference
     def predict_strict(self, values: dict) -> tuple[float, str]:
         """Decision Tree → tree path → IF/THEN rules."""
         X      = self._X(values)
@@ -317,7 +310,6 @@ class MLEngine:
 
         return score, "\n".join(lines), shap_structured
 
-
     async def load_cohort_from_db(self) -> None:
         """
         Replace self.train_df with live data from the cohort_students table.
@@ -332,7 +324,5 @@ class MLEngine:
         else:
             log.info("Peer mode: using %d cohort rows from CSV fallback.", len(self.train_df) if self.train_df is not None else 0)
 
-
-# ─── Singleton ────────────────────────────────────────────────────────────────
-
+# Singleton
 engine = MLEngine()

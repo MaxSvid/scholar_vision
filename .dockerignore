@@ -26,8 +26,12 @@ front-end/dist/
 # Dev / docs
 scripts/
 *.md
-updates.md
+*.MD
 .dockerignore
+
+# Favicon source files (frontend builds its own)
+favicon.png
+favicon_io/
 
 # Claude memory
 .claude/
