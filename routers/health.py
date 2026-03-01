@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/health", tags=["health"])
 MAX_BODY_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
-# ── Import ────────────────────────────────────────────────────────────────────
+# Import
 
 @router.post("/import")
 async def import_health(
@@ -88,7 +88,7 @@ async def import_health(
     }
 
 
-# ── List imports ──────────────────────────────────────────────────────────────
+# List imports
 
 @router.get("/imports")
 async def list_imports(session_id: str = Query(...)):
@@ -105,7 +105,7 @@ async def list_imports(session_id: str = Query(...)):
     return {"imports": rows}
 
 
-# ── Import detail ─────────────────────────────────────────────────────────────
+# Import detail
 
 @router.get("/imports/{import_id}")
 async def get_import(import_id: str):
@@ -134,7 +134,7 @@ async def get_import(import_id: str):
     return {"import": row, "metrics": metrics, "summary": summary}
 
 
-# ── Delete import ─────────────────────────────────────────────────────────────
+# Delete import
 
 @router.delete("/imports/{import_id}")
 async def delete_import(import_id: str):
@@ -150,7 +150,7 @@ async def delete_import(import_id: str):
     return {"deleted": import_id}
 
 
-# ── Aggregated summary across all imports for a session ───────────────────────
+# Aggregated summary across all imports for a session 
 
 @router.get("/metrics/summary")
 async def metrics_summary(session_id: str = Query(...)):

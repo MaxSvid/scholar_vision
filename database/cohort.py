@@ -15,7 +15,7 @@ from psycopg.rows import dict_row
 
 log = logging.getLogger(__name__)
 
-# ── Column mapping ─────────────────────────────────────────────────────────────
+# Column mapping
 
 # Python / CSV  →  database column
 PY_TO_DB: dict[str, str] = {
@@ -34,7 +34,7 @@ ALL_COLS = FEATURES + [TARGET]
 
 DB_COLS  = [PY_TO_DB[c] for c in ALL_COLS]
 
-# ── DDL ───────────────────────────────────────────────────────────────────────
+# DDL 
 
 CREATE_SQL = """
 CREATE TABLE IF NOT EXISTS cohort_students (
@@ -61,7 +61,7 @@ SELECT_SQL = (
     "FROM cohort_students ORDER BY id"
 )
 
-# ── Connection helpers ────────────────────────────────────────────────────────
+# Connection helpers 
 
 def _sync_dsn() -> str:
     host = os.getenv("POSTGRES_HOST",      "localhost")
@@ -72,7 +72,7 @@ def _sync_dsn() -> str:
     return f"postgresql://{user}:{pw}@{host}:{port}/{db}"
 
 
-# ── Sync API (used by scripts/seed_db.py) ────────────────────────────────────
+# Sync API (used by scripts/seed_db.py) 
 
 def sync_create_table() -> None:
     with psycopg.connect(_sync_dsn()) as conn:
@@ -112,7 +112,7 @@ def sync_truncate() -> None:
         conn.commit()
 
 
-# ── Async API (used by ml_engine, called from FastAPI lifespan) ───────────────
+# Async API (used by ml_engine, called from FastAPI lifespan) 
 
 async def async_fetch_cohort_df() -> pd.DataFrame | None:
     """

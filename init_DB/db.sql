@@ -1,16 +1,12 @@
--- ============================================================
 --  ScholarVision · Database Schema
 --  AI-Driven Student Personal Assistant
 --  Stack: PostgreSQL 16 · Random Forests · Decision Trees · XAI
--- ============================================================
 
 -- Extension required for gen_random_uuid()
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 
--- ============================================================
 --  SECTION 1 — AUTHENTICATION & IDENTITY
--- ============================================================
 
 -- 1.1  Main user account (source of truth for user_id)
 CREATE TABLE users (
@@ -32,9 +28,7 @@ CREATE TABLE user_identities (
 );
 
 
--- ============================================================
 --  SECTION 2 — STUDENT PROFILE
--- ============================================================
 
 -- 2.1  Human-readable profile fields
 CREATE TABLE student_profiles (
@@ -71,9 +65,7 @@ CREATE TABLE student_features (
 );
 
 
--- ============================================================
 --  SECTION 3 — ACADEMIC TRACKING
--- ============================================================
 
 -- 3.1  Semester-level GPA progression (time-series — captures growth trajectory)
 CREATE TABLE academic_performance (
@@ -110,10 +102,8 @@ CREATE TABLE assessment_results (
 );
 
 
--- ============================================================
 --  SECTION 4 — PASSIVE DATA COLLECTION
 --  Raw signals gathered unobtrusively from the student's environment
--- ============================================================
 
 -- 4.1  Study sessions (app-tracked or calendar-synced)
 CREATE TABLE study_sessions (
@@ -149,9 +139,7 @@ CREATE TABLE library_access_logs (
 );
 
 
--- ============================================================
 --  SECTION 5 — ENRICHMENT ACTIVITIES
--- ============================================================
 
 -- 5.1  Extracurricular activities
 CREATE TABLE extracurricular_activities (
@@ -189,9 +177,7 @@ CREATE TABLE certifications (
 );
 
 
--- ============================================================
 --  SECTION 6 — SOFT SKILLS & PEER FEEDBACK
--- ============================================================
 
 -- 6.1  Peer reviews (360° feedback)
 CREATE TABLE peer_reviews (
@@ -219,9 +205,7 @@ CREATE TABLE professor_feedback (
 );
 
 
--- ============================================================
 --  SECTION 7 — CAREER OUTCOMES  (Target Labels for ML)
--- ============================================================
 
 CREATE TABLE career_outcomes (
     outcome_id         SERIAL      PRIMARY KEY,
@@ -234,9 +218,7 @@ CREATE TABLE career_outcomes (
 );
 
 
--- ============================================================
 --  SECTION 8 — AI / ML LAYER
--- ============================================================
 
 -- 8.1  Model prediction log (stores every inference made)
 CREATE TABLE ml_predictions (
@@ -260,9 +242,7 @@ CREATE TABLE xai_explanations (
     direction       VARCHAR(10) -- 'positive' | 'negative'
 );
 
--- ============================================================
 --  SECTION 9 — FILE IMPORT & PARSING
--- ============================================================
 
 -- 9.1  Uploaded file registry
 CREATE TABLE uploaded_files (
@@ -307,9 +287,7 @@ CREATE TABLE parsed_text_snippets (
     extracted_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================================
 --  SECTION 10 — APPLE HEALTH IMPORT
--- ============================================================
 
 -- 10.1  One record per JSON payload received
 CREATE TABLE health_imports (

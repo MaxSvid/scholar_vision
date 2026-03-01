@@ -27,7 +27,11 @@ app = FastAPI(title="AI Student Assistant", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite dev server (local only)
+    allow_origins=[
+        "http://localhost:5173",       # Vite dev server
+        "https://scholarvision.uk",
+        "https://www.scholarvision.uk",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

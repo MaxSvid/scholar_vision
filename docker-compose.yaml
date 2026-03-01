@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
 
-  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  # PostgreSQL 
   postgres:
     container_name: scholar_postgres
     image: postgres:16
@@ -20,7 +18,7 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ── pgAdmin 4 ─────────────────────────────────────────────────────────────
+  # pgAdmin 4 
   pgadmin:
     container_name: scholar_pgadmin
     image: dpage/pgadmin4
@@ -35,7 +33,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # ── FastAPI application ───────────────────────────────────────────────────
+  # FastAPI application
   app:
     build: .
     container_name: scholar_app

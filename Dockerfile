@@ -1,4 +1,4 @@
-# ── Stage 1: Build React frontend ─────────────────────────────────────────
+# Stage 1: Building React frontend 
 FROM node:20-alpine AS frontend-build
 
 WORKDIR /frontend
@@ -10,7 +10,7 @@ COPY front-end/ .
 RUN npm run build
 
 
-# ── Stage 2: FastAPI — serves API + built frontend ─────────────────────────
+#  Stage 2: FastAPI — serves API + built frontend 
 FROM python:3.13-slim
 
 WORKDIR /app

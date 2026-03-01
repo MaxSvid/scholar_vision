@@ -20,7 +20,7 @@ from ml_engine import engine
 router = APIRouter(prefix="/api/predictions", tags=["predictions"])
 
 
-# ─── Schema ───────────────────────────────────────────────────────────────────
+# Schema
 
 class AnalysisMode(str, Enum):
     strict = "strict"
@@ -44,7 +44,7 @@ class PredictionResponse(BaseModel):
     text_advice:     str
 
 
-# ─── Endpoint ─────────────────────────────────────────────────────────────────
+# Endpoint 
 
 @router.post("/analyze", response_model=PredictionResponse)
 async def analyze(req: PredictionRequest):

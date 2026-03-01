@@ -17,11 +17,11 @@ import sys
 import time
 from pathlib import Path
 
-# ── Make project root importable ──────────────────────────────────────────────
+# Make project root importable 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-# ── Load .env before importing project modules ────────────────────────────────
+# Load .env before importing project modules 
 def _load_env(path: Path) -> None:
     if not path.exists():
         return
@@ -34,14 +34,14 @@ def _load_env(path: Path) -> None:
 
 _load_env(ROOT / ".env")
 
-# ── Project imports (after env is set) ───────────────────────────────────────
+# Project imports (after env is set) 
 from database.cohort import sync_create_table, sync_count, sync_bulk_insert, sync_truncate
 from scripts.generate_mock_cohort import generate
 
 CSV_PATH = ROOT / "mock_cohort_data.csv"
 
 
-# ── Wait for Postgres ─────────────────────────────────────────────────────────
+# Wait for Postgres 
 
 def wait_for_postgres(host: str, port: int, timeout: int = 60) -> bool:
     print(f"  Waiting for PostgreSQL at {host}:{port}…", end="", flush=True)
@@ -58,7 +58,7 @@ def wait_for_postgres(host: str, port: int, timeout: int = 60) -> bool:
     return False
 
 
-# ── Main ─────────────────────────────────────────────────────────────────────
+# Main 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Seed cohort_students table.")

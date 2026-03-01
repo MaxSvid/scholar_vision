@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 
-# ── Output types ──────────────────────────────────────────────────────────────
+# ── Output types 
 
 @dataclass
 class HealthMetric:
@@ -42,7 +42,7 @@ class HealthParseResult:
     error:          Optional[str]      = None
 
 
-# ── Known metric types (for validation/display) ───────────────────────────────
+# Known metric types (for validation/display) 
 
 KNOWN_TYPES = {
     # Activity
@@ -67,7 +67,7 @@ KNOWN_TYPES = {
 }
 
 
-# ── Parser ────────────────────────────────────────────────────────────────────
+# Parser
 
 def parse_health_json(content: bytes) -> HealthParseResult:
     """Parse Apple Health export JSON bytes into a HealthParseResult."""

@@ -16,8 +16,8 @@ from pathlib import Path
 def generate(n: int = 1_000, seed: int = 42) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
 
-    # ── Primary behavioural features ─────────────────────────────
-    # studyHours: skewed right — most students 2-8h, few at extremes
+    # Primary behavioural features
+    # studyHours: skewed right - most students 2-8h, few at extremes
     studyHours = np.clip(rng.normal(5.5, 3.0, n), 0, 16).round(1)
 
     # sleepHours: roughly normal around 7h
@@ -36,7 +36,7 @@ def generate(n: int = 1_000, seed: int = 42) -> pd.DataFrame:
         focusRatio * 0.55 + sleepHours * 3.8 + rng.normal(12, 20, n), 5, 120
     ).round(0)
 
-    # ── Target: currentGrade ─────────────────────────────────────
+    # Target: currentGrade 
     # Weighted linear combination with realistic noise
     currentGrade = np.clip(
         studyHours    * 3.2    +   # study time: highest lever
