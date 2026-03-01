@@ -4,7 +4,7 @@ Seed a fully-populated test/demo user for ScholarVision.
 What this script creates
 ------------------------
   1. users                — test@scholarvision.com  (password: Scholar2024!)
-  2. student_profiles     — Alex Chen, CS, University of Edinburgh
+  2. student_profiles     — John Bobar, CS, Robert Gordon University
   3. cohort_students      — feature vector for Peer Benchmark + Prediction Engine
   4. health_imports       — 1 import record tied to demo user
      health_metrics       — 35 records: 7 × sleep, 21 × heart rate, 7 × step count
@@ -95,7 +95,7 @@ def seed(conn: psycopg.Connection) -> str:
         VALUES (%s, %s, %s)
         RETURNING user_id
         """,
-        (DEMO_EMAIL, pwd_hash, "Alex Chen"),
+        (DEMO_EMAIL, pwd_hash, "John Bobar"),
     ).fetchone()
     user_id    = str(row["user_id"])
     session_id = user_id   # JWT auth: session_id == user_id
@@ -112,12 +112,12 @@ def seed(conn: psycopg.Connection) -> str:
         """,
         (
             user_id,
-            "Alex Chen",
+            "John Bobar",
             date(2002, 3, 15),
             "Computer Science",
-            "University of Edinburgh",
+            "Robert Gordon University",
             2022, 3,
-            "Edinburgh, UK",
+            "Aberdeen, UK",
             "Third-year CS student focused on machine learning and software engineering.",
             "3rd Year",
             "Graduate with First Class Honours and secure a ML research position.",
@@ -193,7 +193,7 @@ def seed(conn: psycopg.Connection) -> str:
         """,
         (
             health_import_id, session_id,
-            "apple_health_alex_chen",
+            "apple_health_john_smith",
             "2024-11-10 20:00:00", "2.1.0", len(metrics),
         ),
     )
@@ -233,7 +233,7 @@ def seed(conn: psycopg.Connection) -> str:
             f"uploads/{transcript_stored}",
             (
                 "UNIVERSITY OF EDINBURGH — OFFICIAL TRANSCRIPT\n"
-                "Student: Alex Chen  |  ID: s2201234\n"
+                "Student: John Bobar  |  ID: s2201234\n"
                 "Mathematics 101:     A   85/100\n"
                 "Computer Science 101: A+  92/100\n"
                 "Physics 201:         B+  78/100\n"
