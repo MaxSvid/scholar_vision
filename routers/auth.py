@@ -16,9 +16,7 @@ from security import create_access_token, get_current_user, hash_password, verif
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-
-# ── Request / response models ─────────────────────────────────────────────────
-
+# Request / response models
 class RegisterRequest(BaseModel):
     email:        str
     password:     str = Field(..., min_length=8, max_length=72)
@@ -31,14 +29,11 @@ class RegisterRequest(BaseModel):
     studyGoal:    str = ''
     targetGPA:    str = ''
 
-
 class LoginRequest(BaseModel):
     email:    str
     password: str
 
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
+# Helpers
 def _build_user_dict(
     user_id: str,
     email: str,
@@ -66,9 +61,7 @@ def _build_user_dict(
         "targetGPA":    target_gpa,
     }
 
-
-# ── Register ──────────────────────────────────────────────────────────────────
-
+# Register
 @router.post("/register", status_code=201)
 async def register(body: RegisterRequest):
     email = body.email.strip().lower()
@@ -141,9 +134,7 @@ async def register(body: RegisterRequest):
         ),
     }
 
-
-# ── Login ─────────────────────────────────────────────────────────────────────
-
+# Login
 @router.post("/login")
 async def login(body: LoginRequest):
     email = body.email.strip().lower()
@@ -194,9 +185,7 @@ async def login(body: LoginRequest):
         ),
     }
 
-
-# ── Current user ──────────────────────────────────────────────────────────────
-
+# Current user
 @router.get("/me")
 async def get_me(user_id: str = Depends(get_current_user)):
     user = await fetch_one(

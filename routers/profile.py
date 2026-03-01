@@ -18,10 +18,9 @@ from security import get_current_user
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
-
 @router.get("/baseline")
 async def get_baseline(session_id: str = Depends(get_current_user)):
-    # ── Sleep hours — average of Apple Health sleep_analysis records ──────
+    # Sleep hours — average of Apple Health sleep_analysis records
     sleep_row = await fetch_one(
         """
         SELECT ROUND(CAST(AVG(hm.value_num) AS numeric), 1) AS avg_sleep
@@ -39,7 +38,7 @@ async def get_baseline(session_id: str = Depends(get_current_user)):
         else None
     )
 
-    # ── Health source — count imports + total metrics for this session ────
+    # Health source — count imports + total metrics for this session
     health_counts = await fetch_one(
         """
         SELECT
@@ -54,7 +53,7 @@ async def get_baseline(session_id: str = Depends(get_current_user)):
     has_health   = bool(health_counts and int(health_counts["import_count"]) > 0)
     health_count = int(health_counts["metric_count"]) if health_counts else 0
 
-    # ── Files / grades source — count files + extracted grades ────────────
+    # Files / grades source — count files + extracted grades
     grade_counts = await fetch_one(
         """
         SELECT
@@ -70,7 +69,7 @@ async def get_baseline(session_id: str = Depends(get_current_user)):
     has_grades  = bool(grade_counts and int(grade_counts["grade_count"]) > 0)
     grade_count = int(grade_counts["grade_count"]) if grade_counts else 0
 
-    # ── Focus ratio — productive mins / total mins from app_usage_entries ────
+    # Focus ratio — productive mins / total mins from app_usage_entries
     focus_row = await fetch_one(
         """
         SELECT ROUND(
@@ -88,7 +87,7 @@ async def get_baseline(session_id: str = Depends(get_current_user)):
         else None
     )
 
-    # ── Break frequency — average breaks per study session ────────────────
+    # Break frequency — average breaks per study session
     break_row = await fetch_one(
         """
         SELECT ROUND(CAST(AVG(se.breaks_taken) AS numeric), 1) AS avg_breaks
@@ -104,7 +103,7 @@ async def get_baseline(session_id: str = Depends(get_current_user)):
         else None
     )
 
-    # ── Attention span — avg uninterrupted focus block (mins) ────────────
+    # Attention span — avg uninterrupted focus block (mins)
     attention_row = await fetch_one(
         """
         SELECT ROUND(CAST(AVG(se.duration_mins::float / (se.breaks_taken + 1)) AS numeric), 0) AS avg_attention
@@ -120,7 +119,7 @@ async def get_baseline(session_id: str = Depends(get_current_user)):
         else None
     )
 
-    # ── Study hours — average daily study hours ───────────────────────────
+    # Study hours — average daily study hours
     study_row = await fetch_one(
         """
         SELECT ROUND(CAST(AVG(daily_mins) / 60.0 AS numeric), 1) AS avg_daily_hours
@@ -140,7 +139,7 @@ async def get_baseline(session_id: str = Depends(get_current_user)):
         else None
     )
 
-    # ── App usage source counts ───────────────────────────────────────────
+    # App usage source counts
     app_usage_counts = await fetch_one(
         """
         SELECT COUNT(*) AS import_count
@@ -152,7 +151,7 @@ async def get_baseline(session_id: str = Depends(get_current_user)):
     has_app_usage   = bool(app_usage_counts and int(app_usage_counts["import_count"]) > 0)
     app_usage_count = int(app_usage_counts["import_count"]) if app_usage_counts else 0
 
-    # ── Study session source counts ───────────────────────────────────────
+    # Study session source counts
     study_counts = await fetch_one(
         """
         SELECT COUNT(*) AS import_count
@@ -188,7 +187,6 @@ async def get_baseline(session_id: str = Depends(get_current_user)):
         },
     }
 
-
 @router.get("/overview")
 async def get_overview(session_id: str = Depends(get_current_user)):
     """
@@ -196,7 +194,7 @@ async def get_overview(session_id: str = Depends(get_current_user)):
     All four values are derived from the session's imported data.
     """
 
-    # ── Study hours logged today ──────────────────────────────────────────────
+    # Study hours logged today
     today_row = await fetch_one(
         """
         SELECT ROUND(CAST(COALESCE(SUM(se.duration_mins), 0) AS numeric) / 60.0, 1) AS hours_today
@@ -209,7 +207,7 @@ async def get_overview(session_id: str = Depends(get_current_user)):
     )
     study_hours_today = float(today_row["hours_today"] or 0) if today_row else 0.0
 
-    # ── Historical average attention span ─────────────────────────────────────
+    # Historical average attention span
     att_row = await fetch_one(
         """
         SELECT ROUND(CAST(AVG(se.duration_mins::float / (se.breaks_taken + 1)) AS numeric), 0) AS avg_attention
@@ -225,7 +223,7 @@ async def get_overview(session_id: str = Depends(get_current_user)):
         else None
     )
 
-    # ── Top app by duration today ─────────────────────────────────────────────
+    # Top app by duration today
     top_app_row = await fetch_one(
         """
         SELECT ae.app_name
@@ -241,8 +239,7 @@ async def get_overview(session_id: str = Depends(get_current_user)):
     )
     top_app_today = top_app_row["app_name"] if top_app_row else None
 
-    # ── Baseline metrics for grade prediction ─────────────────────────────────
-
+    # Baseline metrics for grade prediction
     focus_row = await fetch_one(
         """
         SELECT ROUND(
@@ -311,7 +308,7 @@ async def get_overview(session_id: str = Depends(get_current_user)):
         else 7.0
     )
 
-    # ── Run 'strict' Decision Tree prediction ────────────────────────────────
+    # Run 'strict' Decision Tree prediction
     predicted_grade = None
     if engine.dt is not None:
         values = {

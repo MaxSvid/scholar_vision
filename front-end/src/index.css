@@ -1,6 +1,6 @@
-/* ============================================================
+/*
    SCHOLARVISION — THEME
-   ============================================================ */
+   */
 
 :root {
   --bg:        #ffffff;
@@ -15,9 +15,9 @@
   --radius:    2px;
 }
 
-/* ============================================================
+/*
    GLOBAL RESET & BASE
-   ============================================================ */
+   */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -68,9 +68,9 @@ input, textarea, select {
   display: block;
 }
 
-/* ============================================================
+/* 
    UTILITY CLASSES
-   ============================================================ */
+ */
 .retro-border {
   border: 1px solid var(--border-hi);
 }
@@ -90,17 +90,17 @@ input, textarea, select {
   color: var(--fg-muted);
 }
 
-/* ============================================================
+/* 
    SCROLLBAR
-   ============================================================ */
+   */
 ::-webkit-scrollbar       { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--fg-muted); border-radius: 0; }
 ::-webkit-scrollbar-thumb:hover { background: var(--fg-dim); }
 
-/* ============================================================
+/*
    RETRO INPUT
-   ============================================================ */
+   */
 .retro-input {
   background: var(--bg-3);
   border: 1px solid var(--border-hi);
@@ -121,9 +121,9 @@ input, textarea, select {
   color: var(--fg-muted);
 }
 
-/* ============================================================
+/*
    RETRO BUTTON
-   ============================================================ */
+ */
 .retro-btn {
   background: transparent;
   border: 1px solid var(--fg);

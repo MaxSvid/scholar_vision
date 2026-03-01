@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 
-# ── Output types ─────────────────────────────────────────────────────────────
+# Output types 
 
 @dataclass
 class ParsedGrade:
@@ -48,7 +48,7 @@ class ParseResult:
     error:     Optional[str]       = None
 
 
-# ── Regex helpers ─────────────────────────────────────────────────────────────
+# Regex helpers 
 
 # e.g.  CS101, MATH 202, ENG-003
 COURSE_CODE_RE = re.compile(r'\b([A-Z]{2,6}[\s\-]?\d{3,4}[A-Z]?)\b')
@@ -132,7 +132,7 @@ def _extract_grade_from_line(line: str, row_idx: int = 0) -> Optional[ParsedGrad
     return grade
 
 
-# ── Per-format extractors ─────────────────────────────────────────────────────
+# Per-format extractors
 
 def _parse_txt(content: bytes) -> ParseResult:
     try:
@@ -330,7 +330,7 @@ def _parse_xlsx(content: bytes) -> ParseResult:
     return result
 
 
-# ── Shared helpers ────────────────────────────────────────────────────────────
+# Shared helpers 
 
 COURSE_KEYWORDS   = ['course', 'module', 'subject', 'class', 'unit', 'paper']
 GRADE_KEYWORDS    = ['grade', 'mark', 'score', 'result', 'percentage', 'gpa', 'pct', 'pts', 'points']
@@ -437,7 +437,7 @@ def _dedup_grades(grades: list[ParsedGrade]) -> list[ParsedGrade]:
     return out
 
 
-# ── Public entry point ────────────────────────────────────────────────────────
+# Public entry point
 
 def parse_file(file_type: str, content: bytes) -> ParseResult:
     """

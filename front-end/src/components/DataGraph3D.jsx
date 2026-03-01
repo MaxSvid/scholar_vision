@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import './DataGraph3D.css'
 
-// ─── STATIC GRAPH STRUCTURE ─────────────────────────────────────────────────
+// STATIC GRAPH STRUCTURE 
 const NODE_DEFS = [
   { id: 'outcome',     label: 'PREDICTED OUTCOME', group: 'outcome',     radius: 0.48, color: '#c8ff00' },
   { id: 'study',       label: 'STUDY TIME',         group: 'category',    radius: 0.30, color: '#d4af37' },
@@ -187,7 +187,7 @@ function buildNodes(user, studySessions, appLogs, attSessions, healthMetrics) {
   })
 }
 
-// ─── COMPONENT ───────────────────────────────────────────────────────────────
+// COMPONENT 
 export default function DataGraph3D({ user, studySessions = [], appLogs = [], attSessions = [], healthMetrics = [] }) {
   const mountRef        = useRef(null)
   const meshesRef       = useRef([])

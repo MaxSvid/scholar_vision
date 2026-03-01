@@ -20,8 +20,7 @@ router = APIRouter(prefix="/api/health", tags=["health"])
 
 MAX_BODY_BYTES = 10 * 1024 * 1024  # 10 MB
 
-
-# ── Import ────────────────────────────────────────────────────────────────────
+# Import
 
 @router.post("/import")
 async def import_health(
@@ -86,8 +85,7 @@ async def import_health(
         "imported_at":    str(row["imported_at"]),
     }
 
-
-# ── List imports ──────────────────────────────────────────────────────────────
+# List imports
 
 @router.get("/imports")
 async def list_imports(session_id: str = Depends(get_current_user)):
@@ -103,8 +101,7 @@ async def list_imports(session_id: str = Depends(get_current_user)):
     )
     return {"imports": rows}
 
-
-# ── Import detail ─────────────────────────────────────────────────────────────
+# Import detail
 
 @router.get("/imports/{import_id}")
 async def get_import(import_id: str, session_id: str = Depends(get_current_user)):
@@ -132,8 +129,7 @@ async def get_import(import_id: str, session_id: str = Depends(get_current_user)
 
     return {"import": row, "metrics": metrics, "summary": summary}
 
-
-# ── Delete import ─────────────────────────────────────────────────────────────
+# Delete import
 
 @router.delete("/imports/{import_id}")
 async def delete_import(import_id: str, session_id: str = Depends(get_current_user)):
@@ -149,9 +145,7 @@ async def delete_import(import_id: str, session_id: str = Depends(get_current_us
     )
     return {"deleted": import_id}
 
-
-# ── Aggregated summary ────────────────────────────────────────────────────────
-
+# Aggregated summary
 @router.get("/metrics/summary")
 async def metrics_summary(session_id: str = Depends(get_current_user)):
     rows = await fetch_all(

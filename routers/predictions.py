@@ -21,7 +21,7 @@ from security import get_current_user
 router = APIRouter(prefix="/api/predictions", tags=["predictions"])
 
 
-# ─── Schema ───────────────────────────────────────────────────────────────────
+# Schema
 
 class AnalysisMode(str, Enum):
     strict = "strict"
@@ -54,7 +54,7 @@ class PredictionResponse(BaseModel):
     shap_values:     list[ShapFeature] | None = None
 
 
-# ─── Endpoint ─────────────────────────────────────────────────────────────────
+# Endpoint 
 
 @router.post("/analyze", response_model=PredictionResponse)
 async def analyze(req: PredictionRequest, _: str = Depends(get_current_user)):

@@ -38,10 +38,9 @@ import uuid
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-# ── Make project root importable ──────────────────────────────────────────────
+# Make project root importable
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-
 
 def _load_env(path: Path) -> None:
     if not path.exists():
@@ -53,21 +52,18 @@ def _load_env(path: Path) -> None:
         k, _, v = line.partition("=")
         os.environ.setdefault(k.strip(), v.strip())
 
-
 _load_env(ROOT / ".env")
 
 import psycopg  # noqa: E402
 from psycopg.rows import dict_row  # noqa: E402
 from security import hash_password  # noqa: E402
 
-# ── Constants ─────────────────────────────────────────────────────────────────
+# Constants
 DEMO_EMAIL    = "test@scholarvision.com"
 DEMO_PASSWORD = "Scholar2024!"
 BASE_DATE     = date(2024, 11, 4)   # Monday — start of the demo week
 
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
+# Helpers
 def _dsn() -> str:
     return (
         f"postgresql://"
@@ -78,23 +74,19 @@ def _dsn() -> str:
         f"{os.getenv('POSTGRES_DB',        'sql_db')}"
     )
 
-
 def day(n: int) -> date:
     """BASE_DATE + n days."""
     return BASE_DATE + timedelta(days=n)
-
 
 def ts(d: date, h: int, m: int, s: int = 0) -> str:
     """Naive ISO-8601 datetime string for a given date + HH:MM:SS."""
     return datetime(d.year, d.month, d.day, h, m, s).isoformat(sep=" ")
 
-
-# ── Seeder ────────────────────────────────────────────────────────────────────
-
+# Seeder
 def seed(conn: psycopg.Connection) -> str:
     """Seed all demo data. Returns the user_id created."""
 
-    # ── 1. User ───────────────────────────────────────────────────────────────
+    # 1. User
     print("  [1/7] Creating user account…")
     pwd_hash = hash_password(DEMO_PASSWORD)
     row = conn.execute(
@@ -108,7 +100,7 @@ def seed(conn: psycopg.Connection) -> str:
     user_id    = str(row["user_id"])
     session_id = user_id   # JWT auth: session_id == user_id
 
-    # ── 2. Student profile ────────────────────────────────────────────────────
+    # 2. Student profile
     print("  [2/7] Creating student profile…")
     conn.execute(
         """
@@ -134,7 +126,7 @@ def seed(conn: psycopg.Connection) -> str:
         ),
     )
 
-    # ── 3. Cohort entry ───────────────────────────────────────────────────────
+    # 3. Cohort entry
     print("  [3/7] Inserting cohort entry…")
     conn.execute(
         """
@@ -146,7 +138,7 @@ def seed(conn: psycopg.Connection) -> str:
         (6.5, 47.0, 72.0, 7.3, 2.3, 74.5),
     )
 
-    # ── 4. Apple Health metrics ───────────────────────────────────────────────
+    # 4. Apple Health metrics
     print("  [4/7] Inserting Apple Health metrics (35 records)…")
 
     metrics: list[dict] = []
@@ -232,7 +224,7 @@ def seed(conn: psycopg.Connection) -> str:
             ),
         )
 
-    # ── 5. Uploaded files + parsed grades ────────────────────────────────────
+    # 5. Uploaded files + parsed grades
     print("  [5/7] Inserting uploaded files and parsed grades…")
 
     transcript_id     = str(uuid.uuid4())
@@ -311,7 +303,7 @@ def seed(conn: psycopg.Connection) -> str:
         ),
     )
 
-    # ── 6. App usage logs ─────────────────────────────────────────────────────
+    # 6. App usage logs
     print("  [6/7] Inserting app usage logs (49 entries)…")
 
     _apps = [
@@ -346,7 +338,7 @@ def seed(conn: psycopg.Connection) -> str:
                 (app_import_id, app_name, category, mins, day(n)),
             )
 
-    # ── 7. Study sessions ─────────────────────────────────────────────────────
+    # 7. Study sessions
     print("  [7/7] Inserting study sessions (14 sessions)…")
 
     _sessions = [
@@ -399,9 +391,7 @@ def seed(conn: psycopg.Connection) -> str:
     conn.commit()
     return user_id
 
-
-# ── Cleanup helpers ───────────────────────────────────────────────────────────
-
+# Cleanup helpers
 def _clean(conn: psycopg.Connection) -> None:
     """Delete all data tied to the demo user."""
     row = conn.execute(
@@ -416,9 +406,7 @@ def _clean(conn: psycopg.Connection) -> None:
     conn.execute("DELETE FROM users WHERE email = %s", (DEMO_EMAIL,))
     conn.commit()
 
-
-# ── Entry point ───────────────────────────────────────────────────────────────
-
+# Entry point
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Seed ScholarVision with a fully-populated test/demo user.",
@@ -462,7 +450,6 @@ def main() -> None:
 
     _print_instructions(user_id)
 
-
 def _print_instructions(user_id: str) -> None:
     print(f"\n  {'=' * 54}")
     print(f"  ✓  All data seeded successfully.\n")
@@ -481,7 +468,6 @@ def _print_instructions(user_id: str) -> None:
     print(f"                  focusRatio ≈58%")
     print(f"    Peers       → demo user in top ~35% of cohort")
     print(f"  {'=' * 54}\n")
-
 
 if __name__ == "__main__":
     main()

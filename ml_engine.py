@@ -46,7 +46,7 @@ MODELS_DIR = Path("models")
 CSV_PATH   = Path("mock_cohort_data.csv")
 
 
-# ─── Data generation (inline, mirrors scripts/generate_mock_cohort.py) ────────
+# Data generation (inline, mirrors scripts/generate_mock_cohort.py)
 
 def _generate_data(n: int = 1_000, seed: int = 42) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
@@ -71,7 +71,7 @@ def _generate_data(n: int = 1_000, seed: int = 42) -> pd.DataFrame:
     })
 
 
-# ─── Engine ───────────────────────────────────────────────────────────────────
+# Engine
 
 class MLEngine:
     def __init__(self):
@@ -81,7 +81,7 @@ class MLEngine:
         self.scaler:   StandardScaler         | None = None
         self.train_df: pd.DataFrame           | None = None
 
-    # ── Lifecycle ─────────────────────────────────────────────────
+    # ── Lifecycle 
 
     def ensure_ready(self):
         MODELS_DIR.mkdir(exist_ok=True)
@@ -109,7 +109,7 @@ class MLEngine:
         df.to_csv(CSV_PATH, index=False)
         return df
 
-    # ── Training ──────────────────────────────────────────────────
+    # ── Training 
 
     def _train_and_save(self):
         df = self._get_data()

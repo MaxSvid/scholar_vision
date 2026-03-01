@@ -20,8 +20,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-
-# ── Tier parameters ────────────────────────────────────────────────────────────
+# Tier parameters
 # Each tier defines (mean, std) for every feature, plus the numeric grade range.
 # D/F sleep is bimodal: 50% sleep-deprived (<5.5 h), 50% oversleeping (>9.5 h).
 
@@ -74,11 +73,10 @@ TIERS = {
     },
 }
 
-
 def generate(n: int = 1_000, seed: int = 42) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
 
-    # ── Compute per-tier student counts ───────────────────────────────────────
+    # Compute per-tier student counts
     n_A  = int(n * TIERS["A"]["weight"])
     n_B  = int(n * TIERS["B"]["weight"])
     n_C  = int(n * TIERS["C"]["weight"])
@@ -138,7 +136,6 @@ def generate(n: int = 1_000, seed: int = 42) -> pd.DataFrame:
     # Shuffle so tiers aren't block-ordered in the DB
     df = df.sample(frac=1, random_state=seed).reset_index(drop=True)
     return df
-
 
 if __name__ == "__main__":
     out = Path(__file__).parent.parent / "mock_cohort_data.csv"

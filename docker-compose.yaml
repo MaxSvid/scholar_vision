@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
 
-  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  # PostgreSQL 
   postgres:
     container_name: scholar_postgres
     image: postgres:16
@@ -20,7 +18,7 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ── pgAdmin 4 ─────────────────────────────────────────────────────────────
+  # pgAdmin 4 
   pgadmin:
     container_name: scholar_pgadmin
     image: dpage/pgadmin4
@@ -35,14 +33,15 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # ── FastAPI application ───────────────────────────────────────────────────
+  # FastAPI application
   app:
     build: .
     container_name: scholar_app
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      POSTGRES_HOST: postgres      # override: use Docker service name, not localhost
+      POSTGRES_PORT_HOST: 5432     # override: internal Docker port, not host-mapped port
     ports:
       - "8000:8000"
     depends_on:

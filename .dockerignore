@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# Python local environment & cache
+.venv
+__pycache__
+**/__pycache__
+**/*.pyc
+**/*.pyo
+.python-version
+
+# Secrets — never bake into the image
+.env
+
+# User uploads — mounted as a volume on the VPS, not baked in
+uploads/
+
+# Trained models — regenerated on first startup
+models/
+
+# Frontend build artefacts — rebuilt inside Docker Stage 1
+front-end/node_modules/
+front-end/dist/
+
+# Dev / docs
+scripts/
+*.md
+updates.md
+.dockerignore
+
+# Claude memory
+.claude/

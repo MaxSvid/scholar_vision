@@ -38,20 +38,17 @@ MAX_BODY_BYTES = 5 * 1024 * 1024  # 5 MB
 
 VALID_CATEGORIES = {"Productive", "Neutral", "Distracting"}
 
-
 class ManualStudyEntry(BaseModel):
     subject: str = ''
     hours: float
     date: str      # YYYY-MM-DD
     notes: str = ''
 
-
 class ManualAppEntry(BaseModel):
     app: str
     hours: float
     date: str      # YYYY-MM-DD
     category: str = 'Neutral'
-
 
 class ManualAttentionEntry(BaseModel):
     duration: int       # minutes
@@ -60,9 +57,7 @@ class ManualAttentionEntry(BaseModel):
     date: str           # YYYY-MM-DD
     source: str = 'manual'    # 'manual' | 'timer'
 
-
-# ── App Usage ─────────────────────────────────────────────────────────────────
-
+# App Usage
 @router.post("/app-usage")
 async def import_app_usage(
     request:    Request,
@@ -105,7 +100,6 @@ async def import_app_usage(
         "summary":     summarise_app_usage(result),
         "imported_at": str(row["imported_at"]),
     }
-
 
 @router.get("/app-usage")
 async def list_app_usage_imports(session_id: str = Depends(get_current_user)):
@@ -171,7 +165,6 @@ async def list_app_usage_imports(session_id: str = Depends(get_current_user)):
         "manual_entries": [dict(e) for e in manual_entries],
     }
 
-
 @router.post("/app-usage/manual")
 async def add_manual_app_entry(body: ManualAppEntry, session_id: str = Depends(get_current_user)):
     try:
@@ -204,7 +197,6 @@ async def add_manual_app_entry(body: ManualAppEntry, session_id: str = Depends(g
     )
     return {"entry_id": entry_row["entry_id"], "import_id": str(import_id)}
 
-
 @router.delete("/app-usage/manual/{entry_id}")
 async def delete_manual_app_entry(entry_id: int, session_id: str = Depends(get_current_user)):
     entry = await fetch_one(
@@ -223,7 +215,6 @@ async def delete_manual_app_entry(entry_id: int, session_id: str = Depends(get_c
     await execute("DELETE FROM app_usage_entries WHERE entry_id = %s", (entry_id,))
     await execute("DELETE FROM app_usage_imports WHERE import_id = %s", (import_id,))
     return {"deleted": entry_id}
-
 
 @router.get("/app-usage/{import_id}")
 async def get_app_usage_import(import_id: str, session_id: str = Depends(get_current_user)):
@@ -245,7 +236,6 @@ async def get_app_usage_import(import_id: str, session_id: str = Depends(get_cur
     )
     return {"import": row, "entries": entries}
 
-
 @router.delete("/app-usage/{import_id}")
 async def delete_app_usage_import(import_id: str, session_id: str = Depends(get_current_user)):
     row = await fetch_one(
@@ -257,9 +247,7 @@ async def delete_app_usage_import(import_id: str, session_id: str = Depends(get_
     await execute("DELETE FROM app_usage_imports WHERE import_id = %s", (import_id,))
     return {"deleted": import_id}
 
-
-# ── Study Logs ────────────────────────────────────────────────────────────────
-
+# Study Logs
 @router.post("/study-logs")
 async def import_study_logs(
     request:    Request,
@@ -305,7 +293,6 @@ async def import_study_logs(
         "total_hours":   round(total_mins / 60, 1),
         "imported_at":   str(row["imported_at"]),
     }
-
 
 @router.get("/study-logs")
 async def list_study_imports(session_id: str = Depends(get_current_user)):
@@ -388,7 +375,6 @@ async def list_study_imports(session_id: str = Depends(get_current_user)):
         "manual_entries": [dict(e) for e in manual_entries],
     }
 
-
 @router.post("/study-logs/manual")
 async def add_manual_study_entry(body: ManualStudyEntry, session_id: str = Depends(get_current_user)):
     try:
@@ -422,7 +408,6 @@ async def add_manual_study_entry(body: ManualStudyEntry, session_id: str = Depen
     )
     return {"entry_id": entry_row["entry_id"], "import_id": str(import_id)}
 
-
 @router.delete("/study-logs/manual/{entry_id}")
 async def delete_manual_study_entry(entry_id: int, session_id: str = Depends(get_current_user)):
     entry = await fetch_one(
@@ -441,7 +426,6 @@ async def delete_manual_study_entry(entry_id: int, session_id: str = Depends(get
     await execute("DELETE FROM study_entries WHERE entry_id = %s", (entry_id,))
     await execute("DELETE FROM study_imports WHERE import_id = %s", (import_id,))
     return {"deleted": entry_id}
-
 
 @router.get("/study-logs/{import_id}")
 async def get_study_import(import_id: str, session_id: str = Depends(get_current_user)):
@@ -472,7 +456,6 @@ async def get_study_import(import_id: str, session_id: str = Depends(get_current
         "avg_breaks":  avg_breaks,
     }
 
-
 @router.delete("/study-logs/{import_id}")
 async def delete_study_import(import_id: str, session_id: str = Depends(get_current_user)):
     row = await fetch_one(
@@ -484,9 +467,7 @@ async def delete_study_import(import_id: str, session_id: str = Depends(get_curr
     await execute("DELETE FROM study_imports WHERE import_id = %s", (import_id,))
     return {"deleted": import_id}
 
-
-# ── Attention / Focus Sessions ────────────────────────────────────────────────
-
+# Attention / Focus Sessions
 @router.get("/attention")
 async def list_attention_entries(session_id: str = Depends(get_current_user)):
     rows = await fetch_all(
@@ -516,7 +497,6 @@ async def list_attention_entries(session_id: str = Depends(get_current_user)):
         },
     }
 
-
 @router.post("/attention")
 async def add_attention_entry(body: ManualAttentionEntry, session_id: str = Depends(get_current_user)):
     try:
@@ -537,7 +517,6 @@ async def add_attention_entry(body: ManualAttentionEntry, session_id: str = Depe
         (session_id, max(1, body.duration), max(0, body.breaks), quality, body.date, source),
     )
     return {"entry_id": row["entry_id"]}
-
 
 @router.delete("/attention/{entry_id}")
 async def delete_attention_entry(entry_id: int, session_id: str = Depends(get_current_user)):

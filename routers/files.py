@@ -28,7 +28,7 @@ ALLOWED_TYPES = {"pdf", "doc", "docx", "xlsx", "xls", "csv", "txt", "png", "jpg"
 MAX_FILE_BYTES = 20 * 1024 * 1024  # 20 MB
 
 
-# ── Upload ────────────────────────────────────────────────────────────────────
+# Upload
 
 @router.post("/upload")
 async def upload_file(
@@ -109,7 +109,7 @@ async def upload_file(
     }
 
 
-# ── List ──────────────────────────────────────────────────────────────────────
+# List
 
 @router.get("")
 async def list_files(session_id: str = Depends(get_current_user)):
@@ -126,7 +126,7 @@ async def list_files(session_id: str = Depends(get_current_user)):
     return {"files": rows}
 
 
-# ── Detail ────────────────────────────────────────────────────────────────────
+# Detail
 
 @router.get("/{file_id}")
 async def get_file(file_id: str, session_id: str = Depends(get_current_user)):
@@ -149,7 +149,7 @@ async def get_file(file_id: str, session_id: str = Depends(get_current_user)):
     return {"file": row, "grades": grades, "snippets": snippets}
 
 
-# ── Delete ────────────────────────────────────────────────────────────────────
+# Delete
 
 @router.delete("/{file_id}")
 async def delete_file(file_id: str, session_id: str = Depends(get_current_user)):
