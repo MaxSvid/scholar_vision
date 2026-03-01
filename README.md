@@ -3,6 +3,7 @@
 AI-Driven Student Personal Assistant - RGU Hack '26
 
 Scholar Vision uses a quantifiable approach to map your academic journey against other peers, predict your grade trajectory, and give you actionable advice that tracks study behaviour, analyses patterns, and uses real machine learning models to predict academic outcomes.
+
 ---
 
 More information in the [presentation tutorial](PRESENTATION.md)
